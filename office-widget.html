@@ -6,34 +6,47 @@
 <title>ABM Office</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#151210;overflow:hidden;font-family:'Courier New',monospace;user-select:none;display:flex;flex-direction:column;height:100vh}
-#wrap{flex:1;position:relative;overflow:hidden}
+html,body{height:100%}
+body{background:#100d0b;overflow:hidden;font-family:'Courier New',monospace;user-select:none;display:flex;flex-direction:column}
+#wrap{flex:1;position:relative;overflow:hidden;min-height:0}
 canvas{display:block}
-#ui{height:36px;background:#1a1410;display:flex;align-items:center;padding:0 14px;gap:12px;
+#ui{height:40px;background:#17120e;display:flex;align-items:center;padding:0 14px;gap:12px;
   border-top:2px solid #3a3020;flex-shrink:0}
-.dot{width:9px;height:9px;border-radius:50%;background:#40c040;box-shadow:0 0 6px #40c040;animation:pulse 2s ease-in-out infinite}
+.dot{width:9px;height:9px;border-radius:50%;background:#40c040;box-shadow:0 0 6px #40c040;animation:pulse 2s ease-in-out infinite;flex-shrink:0}
+.dot.sim{background:#f0a030;box-shadow:0 0 6px #f0a030}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-#clock{color:#f0a030;font-size:15px;font-weight:bold;letter-spacing:2px}
-#clockLabel{color:#806040;font-size:10px;text-transform:uppercase;letter-spacing:2px}
-#status{flex:1;color:#a08060;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#agentCount{background:rgba(240,160,48,0.15);color:#f0a030;padding:2px 12px;border-radius:12px;font-size:11px;font-weight:bold}
+#clock{color:#f0a030;font-size:16px;font-weight:bold;letter-spacing:2px;white-space:nowrap}
+#clockLabel{color:#806040;font-size:10px;text-transform:uppercase;letter-spacing:2px;white-space:nowrap}
+#status{flex:1;color:#b09070;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+#modeTag{color:#1a1410;background:#f0a030;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold;letter-spacing:1px;white-space:nowrap}
+#modeTag.live{background:#50c050}
+#agentCount{background:rgba(240,160,48,0.15);color:#f0a030;padding:3px 12px;border-radius:12px;font-size:11px;font-weight:bold;white-space:nowrap}
 #panelBtn{position:absolute;top:10px;right:10px;z-index:11;background:rgba(18,14,10,0.92);
   border:2px solid #3a3020;color:#f0a030;padding:5px 12px;border-radius:6px;cursor:pointer;
   font:bold 11px 'Courier New',monospace;letter-spacing:1px;transition:right .3s ease}
-#panelBtn.open{right:240px}
-#panel{position:absolute;top:10px;right:10px;width:220px;background:rgba(18,14,10,0.94);
+#panelBtn.open{right:282px}
+#panel{position:absolute;top:10px;right:10px;width:262px;background:rgba(18,14,10,0.94);
   border:2px solid #3a3020;border-radius:8px;padding:10px 10px 6px;z-index:10;
   max-height:calc(100% - 20px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:#3a3020 transparent;
   transition:transform .3s ease,opacity .3s ease}
-#panel.hidden{transform:translateX(240px);opacity:0;pointer-events:none}
+#panel.hidden{transform:translateX(290px);opacity:0;pointer-events:none}
 #panel h3{color:#f0a030;font-size:11px;margin-bottom:6px;text-transform:uppercase;letter-spacing:2px;
   border-bottom:1px solid #2a2018;padding-bottom:5px;display:flex;justify-content:space-between;align-items:center}
 #panel h3 span{color:#806040;font-size:9px;font-weight:normal}
 .ti{padding:5px 0;border-bottom:1px solid #1e1a14;display:flex;align-items:flex-start;gap:7px}
 .ti:last-child{border-bottom:none}
-.ts{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:3px}
-.ts.done{background:#40c040}.ts.wk{background:#f0a030;animation:pulse 1.5s ease-in-out infinite}.ts.qu{background:#504030}
-.tn{color:#c0a080;font-size:10px;line-height:1.3}.ta{color:#605040;font-size:9px}
+.ts{width:8px;height:8px;border-radius:2px;flex-shrink:0;margin-top:3px}
+.tb{flex:1;min-width:0}
+.tn{color:#e0c0a0;font-size:11px;line-height:1.3;display:flex;justify-content:space-between;gap:6px}
+.tn i{font-style:normal;color:#806040;font-size:9px;white-space:nowrap}
+.ta{color:#8a7050;font-size:10px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{height:3px;background:#2a2218;border-radius:2px;margin-top:3px;overflow:hidden}
+.bar b{display:block;height:100%}
+.bar.ind b{width:30%;animation:slide 1.6s linear infinite}
+@keyframes slide{0%{margin-left:-30%}100%{margin-left:100%}}
+.lg{padding:3px 0;color:#7a6850;font-size:10px;line-height:1.3}
+.lg em{font-style:normal;color:#50c050}
+@media(max-width:600px){#clockLabel{display:none}#agentCount{padding:3px 8px}}
 </style>
 </head>
 <body>
@@ -42,41 +55,36 @@ canvas{display:block}
 <div id="panel"></div>
 </div>
 <div id="ui">
-  <div class="dot"></div>
+  <div class="dot sim" id="dot"></div>
   <span id="clock">9:00 AM</span>
   <span id="clockLabel">CLOCK IN</span>
   <span id="status">Opening the office...</span>
-  <span id="agentCount">0 live</span>
+  <span id="modeTag">SIMULATED</span>
+  <span id="agentCount">0 working</span>
 </div>
 <script>
-const C=document.getElementById('c'),X=C.getContext('2d');
-let W,H,T=1;
+const C=document.getElementById('c');
+const MX=C.getContext('2d');
+let X=MX;
+let W=0,H=0,T=24,OX=0,OY=0,DPR=1;
 
-/* ── Panel toggle ── */
-let panelVisible=true;
-document.getElementById('panelBtn').onclick=function(){
-  panelVisible=!panelVisible;
-  document.getElementById('panel').classList.toggle('hidden',!panelVisible);
-  this.classList.toggle('open',panelVisible);
-  this.textContent=panelVisible?'CLOSE':'AGENTS';
-};
-
-/* ── Grid 24x18 ── */
+/* ───────── Grid 24x18 ─────────
+   0 floor  1 wall  2 desk  4 plant  5 bookshelf  6 whiteboard
+   7 water cooler  8 rug  9 printer  10 couch */
 const GC=24,GR=18;
-// 0=floor 1=wall 2=desk 4=plant 5=bookshelf 6=whiteboard 7=watercooler 8=rug 9=printer 10=couch
 const G=[
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
   [1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
   [1,0,0,2,0,0,0,4,0,0,0,1,1,0,2,0,0,2,0,0,2,0,0,1],
   [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,5,0,0,10,10,0,0,0,0,0,0,0,2,0,0,2,0,0,2,0,0,1],
-  [1,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,1],
+  [1,0,5,0,0,10,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,5,0,0,0,0,0,0,0,0,0,0,0,2,0,0,2,0,0,2,0,4,1],
   [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,1,1,0,0,1,1,1,1,1,0,0,0,0,2,0,0,2,0,0,2,0,0,1],
-  [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,1,0,0,0,0,2,0,0,2,0,0,2,0,0,1],
   [1,0,0,6,6,6,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,2,0,0,2,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,2,0,0,2,0,4,1],
   [1,0,0,0,0,0,0,4,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
   [1,1,1,0,0,1,1,1,1,1,0,0,0,8,8,8,8,8,8,0,0,0,0,1],
   [1,0,0,0,0,0,0,0,0,0,0,0,0,8,8,8,8,8,8,0,0,7,0,1],
@@ -84,74 +92,109 @@ const G=[
   [1,0,0,0,0,5,5,0,0,0,0,0,0,0,0,10,10,0,0,0,0,4,0,1],
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 ];
-
 function isFloor(r,c){
   if(r<0||r>=GR||c<0||c>=GC)return false;
-  const v=G[r][c]; return v===0||v===8;
+  const v=G[r][c];return v===0||v===8;
 }
-function isWalkable(r,c){return isFloor(r,c);}
 
 const DESKS=[];
 for(let r=0;r<GR;r++)for(let c=0;c<GC;c++){
-  if(G[r][c]===2&&r+1<GR&&isFloor(r+1,c)) DESKS.push({r,c,chairR:r+1,chairC:c});
+  if(G[r][c]===2&&isFloor(r+1,c))DESKS.push({r,c,chairR:r+1,chairC:c});
 }
-const BOARD={r:9,c:4},COOLER={r:14,c:21};
-const BREAK_SPOTS=[{r:13,c:14},{r:13,c:16},{r:13,c:18},{r:14,c:14},{r:14,c:16},{r:14,c:18}];
-const CONF_SPOTS=[{r:9,c:3},{r:9,c:5},{r:10,c:3},{r:10,c:5},{r:11,c:3},{r:11,c:5}];
+const BOARD_SPOTS=[{r:10,c:3},{r:10,c:4},{r:10,c:5}];
+const COFFEE_SPOTS=[{r:14,c:20},{r:13,c:21},{r:15,c:21},{r:13,c:20}];
+const BREAK_SPOTS=[{r:13,c:14},{r:13,c:16},{r:13,c:18},{r:14,c:14},{r:14,c:16},{r:14,c:18},{r:15,c:14},{r:15,c:17}];
+const CONF_SPOTS=[{r:11,c:2},{r:11,c:4},{r:11,c:6},{r:12,c:3},{r:12,c:5},{r:10,c:7}];
 
-/* ── Agents — ABM is the boss ── */
-const NAMES=['ABM','Dwight','Jim','Pam','Angela','Oscar','Kevin','Stanley',
-             'Ryan','Kelly','Toby','Phyllis','Creed','Meredith','Andy'];
-const SHIRTS=['#c09040','#8a6a30','#5a9a5a','#c06080','#404040','#7070a0','#c09040',
-              '#607050','#a05050','#c070a0','#6a6a6a','#80a070','#506070','#a07060','#5080a0'];
-const HAIRS=['#1a1a1a','#6a4020','#4a3520','#c08a40','#1a1a1a','#2a2020','#5a3a10',
-             '#1a1a1a','#3a2010','#2a1a0a','#6a5040','#b08050','#808080','#7a4020','#5a3a20'];
-
-/* ── Real PC background tasks ── */
-const TASKS=[
-  'running Facebook Ads','rendering video in Premiere','writing blog draft',
-  'processing images in Photoshop','syncing cloud backup','scheduling social posts',
-  'compressing video files','converting PDF documents','uploading to YouTube',
-  'editing podcast audio','designing social graphics','generating thumbnails',
-  'exporting After Effects comp','formatting Excel reports','recording screen capture',
-  'building presentation slides','analyzing Facebook pixel','optimizing ad targeting',
-  'batch resizing images','transcribing meeting notes','syncing Dropbox files',
-  'running email automation','scraping market data','updating WordPress site',
-  'reviewing analytics dashboard',
+/* ───────── Workers and their PC workloads ─────────
+   Each worker owns one category of background work on the PC. */
+const CATS={
+  boss:'#f0c040',ads:'#4a8af0',video:'#b060f0',design:'#f06090',writing:'#f0d060',
+  sheets:'#40b060',backup:'#40c0d0',email:'#f08040',social:'#e05050',media:'#f0a030',
+  docs:'#a0a0b8',web:'#5090c0',data:'#80d040',
+};
+const ROLES=[
+  {name:'ABM',role:'Boss, orchestrator',cat:'boss',shirt:'#26324a',hair:'#161616',hs:0,tie:'#b02828',
+   jobs:['reviewing all pipelines','approving content for publishing','checking ad budget vs spend','prioritising the task queue']},
+  {name:'Dwight',role:'Facebook Ads',cat:'ads',shirt:'#c0a040',hair:'#6a4020',hs:1,tie:'#604020',glasses:false,
+   jobs:['running Facebook Ads','analyzing Facebook pixel','optimizing ad targeting','A/B testing ad creatives','checking ROAS']},
+  {name:'Jim',role:'Video rendering',cat:'video',shirt:'#5a9a5a',hair:'#4a3520',hs:1,
+   jobs:['rendering video in Premiere','exporting After Effects comp','compressing video files','recording screen capture','exporting reels']},
+  {name:'Pam',role:'Graphics',cat:'design',shirt:'#c06080',hair:'#a06a3a',hs:3,
+   jobs:['processing images in Photoshop','designing social graphics','generating thumbnails','batch resizing images']},
+  {name:'Angela',role:'Writing',cat:'writing',shirt:'#6a6a80',hair:'#d0b060',hs:3,
+   jobs:['writing blog draft','drafting ad copy','editing newsletter text','writing video script']},
+  {name:'Oscar',role:'Reports and sheets',cat:'sheets',shirt:'#7070a0',hair:'#1a1210',hs:0,glasses:true,tie:'#406080',
+   jobs:['formatting Excel reports','reviewing analytics dashboard','building weekly KPI sheet']},
+  {name:'Kevin',role:'Backups and sync',cat:'backup',shirt:'#8a8a6a',hair:'#3a2a10',hs:2,
+   jobs:['syncing cloud backup','syncing Dropbox files','archiving finished projects']},
+  {name:'Stanley',role:'Email automation',cat:'email',shirt:'#505a68',hair:'#222',hs:2,
+   jobs:['running email automation','cleaning email list','sending newsletter batch']},
+  {name:'Ryan',role:'Social posting',cat:'social',shirt:'#a05050',hair:'#2a1a0a',hs:1,
+   jobs:['scheduling social posts','replying to comments','planning content calendar']},
+  {name:'Kelly',role:'YouTube and audio',cat:'media',shirt:'#c070a0',hair:'#20140c',hs:3,
+   jobs:['uploading to YouTube','editing podcast audio','transcribing meeting notes']},
+  {name:'Toby',role:'Documents',cat:'docs',shirt:'#80a070',hair:'#6a5040',hs:0,glasses:true,
+   jobs:['converting PDF documents','building presentation slides','filing invoices']},
+  {name:'Phyllis',role:'Website',cat:'web',shirt:'#a8788a',hair:'#c8c0b8',hs:3,
+   jobs:['updating WordPress site','checking site speed','publishing blog post']},
+  {name:'Creed',role:'Market data',cat:'data',shirt:'#506070',hair:'#909090',hs:2,
+   jobs:['scraping market data','tracking competitor ads','cleaning lead lists']},
 ];
 
 function rand(a){return a[Math.floor(Math.random()*a.length)]}
 function ri(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 
-const agents=[];
-for(let i=0;i<Math.min(NAMES.length,DESKS.length);i++){
-  const d=DESKS[i];
-  agents.push({
-    name:NAMES[i],shirt:SHIRTS[i],hair:HAIRS[i],
-    x:d.chairC,y:d.chairR,desk:d,state:'sit',
-    task:rand(TASKS),bubble:'',bubbleT:0,
-    stateT:ri(180,500),path:[],speed:0.04+Math.random()*0.015,
-    walkTo:null,frame:0,isBoss:i===0,
-  });
+const shCache=new Map();
+function shade(hex,amt){
+  const k=hex+amt;if(shCache.has(k))return shCache.get(k);
+  const n=parseInt(hex.slice(1),16);
+  const f=v=>clamp(Math.round(v+amt*255),0,255);
+  const out='#'+[f((n>>16)&255),f((n>>8)&255),f(n&255)].map(v=>v.toString(16).padStart(2,'0')).join('');
+  shCache.set(k,out);return out;
 }
 
-/* ── A* Pathfinding ── */
+/* ───────── Agents ───────── */
+const agents=[];
+const LOG=[];
+const claims=new Map();
+let mode='sim';
+
+function newJob(a){
+  if(a.boss)return{title:rand(a.jobs),p:null,live:false,rate:0};
+  return{title:rand(a.jobs),p:0,live:false,rate:100/ri(18,45)};
+}
+for(let i=0;i<Math.min(ROLES.length,DESKS.length);i++){
+  const R=ROLES[i],d=DESKS[i];
+  const a=Object.assign({},R,{
+    desk:d,x:d.chairC,y:d.chairR,state:'sit',dir:1,wp:Math.random()*6,
+    bubble:'',bubbleT:0,stateT:ri(3,10),path:[],walkTo:null,spot:null,
+    speed:2.2+Math.random()*0.8,boss:i===0,queue:[],live:null,job:null,ph:Math.random()*10,
+  });
+  a.job=newJob(a);
+  if(!a.boss)a.job.p=ri(0,80);
+  agents.push(a);
+  d.agent=a;
+}
+
+/* ───────── A* ───────── */
 function pathFind(sr,sc,er,ec){
   sr=Math.round(sr);sc=Math.round(sc);er=Math.round(er);ec=Math.round(ec);
   if(!isFloor(er,ec)){
-    for(const[dr,dc] of [[0,1],[0,-1],[1,0],[-1,0],[1,1],[-1,1],[1,-1],[-1,-1]]){
+    for(const[dr,dc] of [[0,1],[0,-1],[1,0],[-1,0]]){
       if(isFloor(er+dr,ec+dc)){er+=dr;ec+=dc;break;}
     }
   }
-  if(!isFloor(er,ec))return[];
+  if(!isFloor(er,ec)||!isFloor(sr,sc))return[];
   const K=(r,c)=>r*GC+c;
   const open=[{r:sr,c:sc,g:0,h:Math.abs(er-sr)+Math.abs(ec-sc),p:null}];
-  const vis=new Set(),best=new Map();
-  best.set(K(sr,sc),0);
-  let it=0;
-  while(open.length&&it++<800){
-    open.sort((a,b)=>(a.g+a.h)-(b.g+b.h));
-    const u=open.shift();
+  const vis=new Set(),best=new Map([[K(sr,sc),0]]);
+  while(open.length){
+    let bi=0;
+    for(let i=1;i<open.length;i++)if(open[i].g+open[i].h<open[bi].g+open[bi].h)bi=i;
+    const u=open.splice(bi,1)[0];
     if(u.r===er&&u.c===ec){const p=[];let n=u;while(n){p.unshift({r:n.r,c:n.c});n=n.p;}return p;}
     const k=K(u.r,u.c);
     if(vis.has(k))continue;vis.add(k);
@@ -168,491 +211,733 @@ function pathFind(sr,sc,er,ec){
   return[];
 }
 
-/* ── Task Board ── */
-const board=[];
-for(let i=0;i<10;i++){
-  board.push({id:'task-'+(i+1),name:TASKS[i%TASKS.length],
-    st:i<3?'done':i<7?'wk':'qu',who:agents[i%agents.length].name});
+/* ───────── Sim clock ───────── */
+let simMin=540;
+const SCHEDULE=[[540,'CLOCK IN'],[570,'STANDUP'],[600,'DEEP WORK'],[720,'LUNCH'],[780,'DEEP WORK'],[960,'REVIEW'],[1020,'WRAP UP']];
+let curLabel='CLOCK IN';
+function clockTick(dt){
+  simMin+=dt*0.2;if(simMin>=1080)simMin=540;
+  const h=Math.floor(simMin/60),m=Math.floor(simMin%60);
+  const ap=h>=12?'PM':'AM',h12=h>12?h-12:h===0?12:h;
+  document.getElementById('clock').textContent=`${h12}:${String(m).padStart(2,'0')} ${ap}`;
+  for(const[t,l] of SCHEDULE)if(simMin>=t)curLabel=l;
+  document.getElementById('clockLabel').textContent=curLabel;
+}
+function stamp(){
+  const h=Math.floor(simMin/60),m=Math.floor(simMin%60);
+  return`${h>12?h-12:h}:${String(m).padStart(2,'0')}`;
 }
 
-function renderPanel(){
-  const el=document.getElementById('panel');
-  let h=`<h3>AGENTS <span>${agents.length} workers</span></h3>`;
+/* ───────── Behaviour ───────── */
+function release(a){if(a.spot){claims.delete(a.spot);a.spot=null;}}
+function pickSpot(list){
+  const free=list.filter(s=>!claims.has(s.r*GC+s.c));
+  return rand(free.length?free:list);
+}
+function walkTo(a,spot,kind,say){
+  const p=pathFind(a.y,a.x,spot.r,spot.c);
+  if(p.length<2&&!(Math.round(a.x)===spot.c&&Math.round(a.y)===spot.r)){a.stateT=ri(3,6);return false;}
+  release(a);
+  if(kind!=='desk'){a.spot=spot.r*GC+spot.c;claims.set(a.spot,a);}
+  a.state='walk';a.path=p;a.walkTo=kind;
+  if(say){a.bubble=say;a.bubbleT=2.5;}
+  return true;
+}
+function goDesk(a){
+  release(a);
+  a.state='walk';a.walkTo='desk';
+  a.path=pathFind(a.y,a.x,a.desk.chairR,a.desk.chairC);
+}
+function chooseAction(a){
+  const live=mode==='live';
+  const lunch=curLabel==='LUNCH';
+  const opts=[];
+  const add=(w,f)=>{for(let i=0;i<w;i++)opts.push(f)};
+  add(a.boss?5:2,()=>walkTo(a,pickSpot(BOARD_SPOTS),'board','heading to board'));
+  add(2,()=>walkTo(a,pickSpot(COFFEE_SPOTS),'coffee','getting coffee'));
+  add(lunch?7:1,()=>walkTo(a,pickSpot(BREAK_SPOTS),'break','heading to break room'));
+  add(1,()=>walkTo(a,pickSpot(CONF_SPOTS),'conf','heading to meeting'));
+  if(!live||a.job)add(live?0:3,()=>{
+    a.stateT=ri(6,14);
+    if(a.job){a.bubble='< '+a.job.title;a.bubbleT=3.5;}
+    return true;
+  });
+  if(!opts.length)add(1,()=>walkTo(a,pickSpot(BREAK_SPOTS),'break','taking a breather'));
+  const ok=rand(opts)();
+  if(!ok&&a.state==='sit')a.stateT=ri(3,6);
+}
+function completeJob(a){
+  LOG.unshift({who:a.name,title:a.job.title,t:stamp(),cat:a.cat});
+  if(LOG.length>40)LOG.pop();
+  setStatus(`${a.name} finished: ${a.job.title}`);
+  a.job=a.queue.length?a.queue.shift():newJob(a);
+  a.bubble='< '+a.job.title;a.bubbleT=3.5;
+}
+function arrive(a){
+  if(a.walkTo==='desk'){
+    a.state='sit';a.x=a.desk.chairC;a.y=a.desk.chairR;a.stateT=ri(6,14);
+    if(a.job){a.bubble='< '+a.job.title;a.bubbleT=3.5;}
+    return;
+  }
+  a.state='stand';a.stateT=ri(4,9);
+  if(a.walkTo==='board'){
+    if(a.boss&&mode==='sim'){
+      const t=rand(agents.filter(x=>!x.boss));
+      const title=rand(t.jobs);
+      t.queue.push({title,p:0,live:false,rate:100/ri(18,45)});
+      a.bubble=`assigning ${t.name}: ${title}`;a.bubbleT=4.5;
+      setStatus(`ABM assigned "${title}" to ${t.name}`);
+    }else a.bubble=a.boss?'reviewing the board':'updating task board';
+    a.bubbleT=Math.max(a.bubbleT,3);
+  }else if(a.walkTo==='coffee')a.bubble='drinking coffee';
+  else if(a.walkTo==='conf')a.bubble='< reviewing progress';
+  else a.bubble='relaxing';
+  if(a.bubbleT<3)a.bubbleT=3;
+}
+function update(a,dt){
+  a.stateT-=dt;if(a.bubbleT>0)a.bubbleT-=dt;
+  if(mode==='live'){
+    if(a.job&&a.state!=='sit'&&a.walkTo!=='desk')goDesk(a);
+    else if(!a.job&&a.state==='sit'&&a.stateT>2)a.stateT=2;
+  }
+  if(a.state==='sit'){
+    if(a.job&&!a.job.live&&!a.boss){
+      a.job.p+=a.job.rate*dt;
+      if(a.job.p>=100)completeJob(a);
+    }
+    if(a.stateT<=0){
+      if(mode==='live'&&a.job)a.stateT=ri(6,14);
+      else chooseAction(a);
+    }
+  }else if(a.state==='stand'){
+    if(a.stateT<=0){
+      release(a);
+      if(mode==='live'&&!a.job)chooseAction(a);
+      else goDesk(a);
+    }
+  }else if(a.state==='walk'){
+    let step=a.speed*dt;
+    if(a.path.length){
+      const n=a.path[0];let dx=n.c-a.x,dy=n.r-a.y;const d=Math.hypot(dx,dy)||1;dx/=d;dy/=d;
+      for(const o of agents){
+        if(o===a||o.state==='sit')continue;
+        const ox=o.x-a.x,oy=o.y-a.y;
+        if(Math.hypot(ox,oy)<0.8&&ox*dx+oy*dy>0){step*=0.45;break;}
+      }
+    }
+    if(a.path.length)a.wp+=dt*8;
+    while(step>0&&a.path.length){
+      const n=a.path[0],dx=n.c-a.x,dy=n.r-a.y,d=Math.hypot(dx,dy);
+      if(Math.abs(dx)>0.01)a.dir=dx>0?1:-1;
+      if(d<=step){a.x=n.c;a.y=n.r;step-=d;a.path.shift();}
+      else{a.x+=dx/d*step;a.y+=dy/d*step;step=0;}
+    }
+    if(!a.path.length)arrive(a);
+  }
+}
+
+/* ───────── Live feed (optional) ─────────
+   A local script (feed/pc-feed.js) reports what the PC is actually doing.
+   Without it the office runs a simulation and says so on the status bar. */
+const qs=new URLSearchParams(location.search);
+const FEED_URL=(qs.get('feed')||'http://localhost:8765').replace(/\/$/,'');
+const FEED_ON=qs.get('feed')!=='off';
+const seenDone=new Set();
+function setMode(m){
+  if(m===mode)return;
+  mode=m;
+  const tag=document.getElementById('modeTag');
+  tag.textContent=m==='live'?'LIVE FEED':'SIMULATED';
+  tag.classList.toggle('live',m==='live');
+  document.getElementById('dot').classList.toggle('sim',m!=='live');
   for(const a of agents){
-    const col=a.state==='sit'?'#f0a030':'#60a060';
-    h+=`<div class="ti"><div class="ts" style="background:${col}"></div>
-      <div><div class="tn" style="color:#e0c0a0">${a.isBoss?'<b style="color:#f0a030">'+a.name+' (Boss)</b>':a.name}</div>
-      <div class="ta">${a.state==='sit'?a.task:a.bubble||'idle'}</div></div></div>`;
+    a.queue=[];a.live=null;
+    a.job=m==='sim'?newJob(a):null;
+    if(a.job&&!a.boss)a.job.p=ri(0,60);
   }
-  h+=`<h3 style="margin-top:8px">TASKS <span>${board.filter(t=>t.st==='wk').length} active</span></h3>`;
-  for(const t of board.slice(-8)){
-    h+=`<div class="ti"><div class="ts ${t.st}"></div>
-      <div><div class="tn">${t.name}</div><div class="ta">${t.who} · ${t.st==='done'?'done':t.st==='wk'?'working':'queued'}</div></div></div>`;
-  }
-  el.innerHTML=h;
+  setStatus(m==='live'?'Live feed connected':'Feed lost, back to simulation');
 }
-renderPanel();
+function applyFeed(d){
+  const evs=Array.isArray(d.events)?d.events:[];
+  const per=new Map();
+  for(const e of evs){
+    const key=String(e.agent||'').toLowerCase();
+    const a=agents.find(x=>key&&x.name.toLowerCase()===key)||agents.find(x=>!x.boss&&x.cat===e.cat);
+    if(!a)continue;
+    if(e.status==='done'){
+      if(e.id&&!seenDone.has(e.id)){
+        seenDone.add(e.id);
+        LOG.unshift({who:a.name,title:String(e.task||'task'),t:stamp(),cat:a.cat});
+        if(LOG.length>40)LOG.pop();
+      }
+      continue;
+    }
+    if(!per.has(a))per.set(a,[]);
+    per.get(a).push(e);
+  }
+  for(const a of agents){
+    const list=per.get(a);
+    if(!list||a.boss){a.job=null;continue;}
+    const e=list[0];
+    const p=typeof e.progress==='number'?clamp(e.progress,0,100):null;
+    const title=String(e.task||'working')+(list.length>1?` (+${list.length-1})`:'');
+    a.job={title,p,live:true,rate:0};
+  }
+  const boss=agents[0],n=[...per.keys()].length;
+  boss.job=n?{title:`monitoring ${n} live job${n>1?'s':''}`,p:null,live:true,rate:0}:{title:'all quiet',p:null,live:true,rate:0};
+}
+async function pollFeed(){
+  let delay=15000;
+  try{
+    const res=await fetch(FEED_URL+'/state',{cache:'no-store'});
+    if(!res.ok)throw new Error('http '+res.status);
+    applyFeed(await res.json());
+    setMode('live');delay=2000;
+  }catch(e){
+    if(mode==='live')setMode('sim');
+  }
+  setTimeout(pollFeed,delay);
+}
 
-/* ── Resize — fill viewport ── */
+/* ───────── Status bar ───────── */
+let statusHold=0;
+function setStatus(s){document.getElementById('status').textContent=s;statusHold=4;}
+function rotateStatus(){
+  const w=agents.filter(a=>a.job&&a.state==='sit'&&!a.boss);
+  if(!w.length){document.getElementById('status').textContent=mode==='live'?'No live jobs reported':'Team is on a break';return;}
+  const a=rand(w);
+  const pct=a.job.p==null?'':` (${Math.floor(a.job.p)}%)`;
+  document.getElementById('status').textContent=`${a.name}: ${a.job.title}${pct}`;
+}
+
+/* ───────── Panel ───────── */
+let panelVisible=window.innerWidth>=900;
+const panelEl=document.getElementById('panel'),panelBtn=document.getElementById('panelBtn');
+function syncPanelUI(){
+  panelEl.classList.toggle('hidden',!panelVisible);
+  panelBtn.classList.toggle('open',panelVisible);
+  panelBtn.textContent=panelVisible?'CLOSE':'AGENTS';
+}
+panelBtn.onclick=()=>{panelVisible=!panelVisible;syncPanelUI();resize();};
+syncPanelUI();
+function renderPanel(){
+  if(!panelVisible)return;
+  const working=agents.filter(a=>a.job&&!a.boss).length;
+  let h=`<h3>TEAM <span>${agents.length} workers</span></h3>`;
+  for(const a of agents){
+    const col=CATS[a.cat];
+    let sub,bar='';
+    if(a.job){
+      sub=esc(a.job.title)+(a.queue.length?` +${a.queue.length} queued`:'');
+      if(a.job.p==null)bar=`<div class="bar ind"><b style="background:${col}"></b></div>`;
+      else bar=`<div class="bar"><b style="width:${a.job.p.toFixed(0)}%;background:${col}"></b></div>`;
+    }else sub='idle';
+    const where=a.state==='sit'?'':' <i>away</i>';
+    h+=`<div class="ti"><div class="ts" style="background:${col}"></div><div class="tb">
+      <div class="tn"><span>${a.boss?'<b style="color:#f0c040">ABM (Boss)</b>':esc(a.name)}${where}</span><i>${esc(a.role)}</i></div>
+      <div class="ta">${sub}</div>${bar}</div></div>`;
+  }
+  h+=`<h3 style="margin-top:10px">FINISHED <span>${LOG.length} logged</span></h3>`;
+  if(!LOG.length)h+=`<div class="lg">nothing finished yet</div>`;
+  for(const l of LOG.slice(0,8))h+=`<div class="lg"><em>done</em> ${esc(l.t)} ${esc(l.who)}: ${esc(l.title)}</div>`;
+  panelEl.innerHTML=h;
+}
+
+/* ───────── Sizing ───────── */
 function resize(){
   const wrap=document.getElementById('wrap');
-  W=C.width=wrap.clientWidth;
-  H=C.height=wrap.clientHeight;
-  T=Math.max(20,Math.floor(Math.min((W-40)/GC,(H-40)/GR)));
+  DPR=Math.min(window.devicePixelRatio||1,3);
+  W=wrap.clientWidth;H=wrap.clientHeight;
+  C.width=Math.round(W*DPR);C.height=Math.round(H*DPR);
+  C.style.width=W+'px';C.style.height=H+'px';
+  const avail=W-(panelVisible&&W>=900?284:0);
+  T=Math.max(10,Math.floor(Math.min((avail-24)/GC,(H-24)/GR)));
+  OX=Math.round((avail-GC*T)/2);OY=Math.round((H-GR*T)/2);
+  buildLayer();
 }
-resize();
-window.addEventListener('resize',resize);
 
-/* ── Drawing helpers ── */
-const SKIN='#f0c090',SKIN_S='#d0a070';
+/* ───────── Pixel helpers ───────── */
+let P0=0,P1=0,S=1;
+function at(px,py,s){P0=px;P1=py;S=s;}
+function snap(v){return Math.round(v*DPR)/DPR;}
+function b(x,y,w,h,col){
+  X.fillStyle=col;
+  const x0=snap(P0+x*S),y0=snap(P1+y*S),x1=snap(P0+(x+w)*S),y1=snap(P1+(y+h)*S);
+  X.fillRect(x0,y0,Math.max(1/DPR,x1-x0),Math.max(1/DPR,y1-y0));
+}
 
-/* ── WALL COLOR PALETTE ── */
-const WALL_DARK='#262220';
-const WALL_MID='#302c28';
-const WALL_EDGE='#4a443a';
-const WALL_INNER='#3e3830';
-const WALL_ACCENT='#1e1a18';
+/* ───────── Static layer (walls, floor, furniture bases) ───────── */
+const LC=document.createElement('canvas');
+let LX=LC.getContext('2d');
 
-function drawTile(r,c,ox,oy){
-  const px=ox+c*T,py=oy+r*T,v=G[r][c];
+const FLOOR_A='#8c7a5c',FLOOR_B='#85735a',FLOOR_LINE='#6e5e46';
+
+function drawTile(r,c){
+  const px=c*T,py=r*T,v=G[r][c];
   if(v===1){
-    // Main wall body
-    X.fillStyle=WALL_DARK;
-    X.fillRect(px,py,T+1,T+1);
-    // Subtle texture variation
-    X.fillStyle=(r+c)%2===0?WALL_MID:'#2a2622';
-    X.fillRect(px+1,py+1,T-1,T-1);
-
-    // Inner boundary — lighter edges facing floor
-    const bw=Math.max(3,Math.round(T*0.14));
-    const fB=r+1<GR&&isFloor(r+1,c);
-    const fT=r-1>=0&&isFloor(r-1,c);
-    const fR=c+1<GC&&isFloor(r,c+1);
-    const fL=c-1>=0&&isFloor(r,c-1);
-
-    if(fB){
-      X.fillStyle=WALL_EDGE;X.fillRect(px,py+T-bw,T+1,bw);
-      X.fillStyle=WALL_INNER;X.fillRect(px,py+T-1,T+1,1);
-    }
-    if(fT){
-      X.fillStyle=WALL_EDGE;X.fillRect(px,py,T+1,bw);
-      X.fillStyle=WALL_INNER;X.fillRect(px,py+bw,T+1,1);
-    }
-    if(fR){
-      X.fillStyle=WALL_EDGE;X.fillRect(px+T-bw,py,bw+1,T+1);
-      X.fillStyle=WALL_INNER;X.fillRect(px+T-1,py,1,T+1);
-    }
-    if(fL){
-      X.fillStyle=WALL_EDGE;X.fillRect(px,py,bw,T+1);
-      X.fillStyle=WALL_INNER;X.fillRect(px+bw,py,1,T+1);
-    }
-    // Corner insets
-    if(fB&&fR){X.fillStyle=WALL_EDGE;X.fillRect(px+T-bw,py+T-bw,bw+1,bw+1);}
-    if(fB&&fL){X.fillStyle=WALL_EDGE;X.fillRect(px,py+T-bw,bw,bw+1);}
-    if(fT&&fR){X.fillStyle=WALL_EDGE;X.fillRect(px+T-bw,py,bw+1,bw);}
-    if(fT&&fL){X.fillStyle=WALL_EDGE;X.fillRect(px,py,bw,bw);}
-  } else if(v===8){
-    X.fillStyle=(r+c)%2?'#7a3028':'#8a3830';
-    X.fillRect(px,py,T+1,T+1);
-    X.fillStyle='#6a2820';
-    X.fillRect(px,py,T+1,1);X.fillRect(px,py,1,T+1);
-  } else {
-    // Floor tile — green tinted
-    X.fillStyle=(r+c)%2?'#5e6e4e':'#687858';
-    X.fillRect(px,py,T+1,T+1);
-    X.strokeStyle='#4e5e3e';X.lineWidth=0.5;
-    X.strokeRect(px+0.5,py+0.5,T,T);
+    X.fillStyle='#2a2522';X.fillRect(px,py,T+1,T+1);
+    X.fillStyle=(r+c)%2?'#2f2a26':'#292421';X.fillRect(px+1,py+1,T-2,T-2);
+    const bw=Math.max(4,Math.round(T*0.2));
+    const fB=isFloor(r+1,c),fT=isFloor(r-1,c),fR=isFloor(r,c+1),fL=isFloor(r,c-1);
+    const BAND='#4a4136',HL='#7a6e58',DK='#15110e';
+    if(fB){X.fillStyle=BAND;X.fillRect(px,py+T-bw,T+1,bw);X.fillStyle=HL;X.fillRect(px,py+T-2,T+1,2);X.fillStyle=DK;X.fillRect(px,py+T-bw-1,T+1,1);}
+    if(fT){X.fillStyle=BAND;X.fillRect(px,py,T+1,bw);X.fillStyle=HL;X.fillRect(px,py,T+1,2);X.fillStyle=DK;X.fillRect(px,py+bw,T+1,1);}
+    if(fR){X.fillStyle=BAND;X.fillRect(px+T-bw,py,bw,T+1);X.fillStyle=HL;X.fillRect(px+T-2,py,2,T+1);X.fillStyle=DK;X.fillRect(px+T-bw-1,py,1,T+1);}
+    if(fL){X.fillStyle=BAND;X.fillRect(px,py,bw,T+1);X.fillStyle=HL;X.fillRect(px,py,2,T+1);X.fillStyle=DK;X.fillRect(px+bw,py,1,T+1);}
+    if(fB&&fR){X.fillStyle=BAND;X.fillRect(px+T-bw,py+T-bw,bw,bw);}
+    if(fB&&fL){X.fillStyle=BAND;X.fillRect(px,py+T-bw,bw,bw);}
+    if(fT&&fR){X.fillStyle=BAND;X.fillRect(px+T-bw,py,bw,bw);}
+    if(fT&&fL){X.fillStyle=BAND;X.fillRect(px,py,bw,bw);}
+  }else if(v===8){
+    X.fillStyle=(r+c)%2?'#7a2c2c':'#842f2e';X.fillRect(px,py,T+1,T+1);
+    const e=Math.max(2,Math.round(T*0.1));
+    const rug=(rr,cc)=>rr>=0&&rr<GR&&cc>=0&&cc<GC&&G[rr][cc]===8;
+    X.fillStyle='#c4983c';
+    if(!rug(r-1,c))X.fillRect(px,py,T+1,e);
+    if(!rug(r+1,c))X.fillRect(px,py+T-e,T+1,e);
+    if(!rug(r,c-1))X.fillRect(px,py,e,T+1);
+    if(!rug(r,c+1))X.fillRect(px+T-e,py,e,T+1);
+    X.fillStyle='#a8463a';
+    const m=T/2,d=T*0.22;
+    X.beginPath();X.moveTo(px+m,py+m-d);X.lineTo(px+m+d,py+m);X.lineTo(px+m,py+m+d);X.lineTo(px+m-d,py+m);X.closePath();X.fill();
+  }else{
+    X.fillStyle=(r+c)%2?FLOOR_A:FLOOR_B;X.fillRect(px,py,T+1,T+1);
+    X.strokeStyle=FLOOR_LINE;X.lineWidth=1;X.strokeRect(px+0.5,py+0.5,T,T);
+    X.fillStyle='rgba(255,240,210,0.05)';X.fillRect(px+1,py+1,T-2,2);
+    const h=(r*31+c*17)%7;
+    if(h===0){X.fillStyle='rgba(0,0,0,0.06)';X.fillRect(px+T*0.3,py+T*0.55,T*0.25,T*0.12);}
   }
 }
 
-/* Floor shadows — ambient occlusion near walls */
-function drawFloorShadows(ox,oy){
-  const sw=Math.max(3,Math.round(T*0.12));
+function drawFloorShadows(){
+  const sw=Math.max(4,Math.round(T*0.22));
   for(let r=0;r<GR;r++)for(let c=0;c<GC;c++){
     if(!isFloor(r,c))continue;
-    const px=ox+c*T,py=oy+r*T;
-    // Shadow from wall above
-    if(r>0&&G[r-1][c]===1){
-      const g=X.createLinearGradient(px,py,px,py+sw);
-      g.addColorStop(0,'rgba(0,0,0,0.22)');g.addColorStop(1,'rgba(0,0,0,0)');
+    const px=c*T,py=r*T;
+    if(G[r-1]&&G[r-1][c]===1){
+      const g=X.createLinearGradient(0,py,0,py+sw);g.addColorStop(0,'rgba(0,0,0,0.38)');g.addColorStop(1,'rgba(0,0,0,0)');
       X.fillStyle=g;X.fillRect(px,py,T,sw);
     }
-    // Shadow from wall left
-    if(c>0&&G[r][c-1]===1){
-      const g=X.createLinearGradient(px,py,px+sw,py);
-      g.addColorStop(0,'rgba(0,0,0,0.18)');g.addColorStop(1,'rgba(0,0,0,0)');
+    if(G[r][c-1]===1){
+      const g=X.createLinearGradient(px,0,px+sw,0);g.addColorStop(0,'rgba(0,0,0,0.3)');g.addColorStop(1,'rgba(0,0,0,0)');
       X.fillStyle=g;X.fillRect(px,py,sw,T);
     }
-    // Subtle highlight from wall below (reflected light)
-    if(r+1<GR&&G[r+1][c]===1){
-      X.fillStyle='rgba(255,255,240,0.03)';
-      X.fillRect(px,py+T-sw,T,sw);
+    if(G[r][c+1]===1){
+      const g=X.createLinearGradient(px+T,0,px+T-sw,0);g.addColorStop(0,'rgba(0,0,0,0.2)');g.addColorStop(1,'rgba(0,0,0,0)');
+      X.fillStyle=g;X.fillRect(px+T-sw,py,sw,T);
     }
-    if(c+1<GC&&G[r][c+1]===1){
-      X.fillStyle='rgba(255,255,240,0.02)';
-      X.fillRect(px+T-sw,py,sw,T);
+    if(G[r+1]&&G[r+1][c]===1){
+      const g=X.createLinearGradient(0,py+T,0,py+T-sw);g.addColorStop(0,'rgba(0,0,0,0.2)');g.addColorStop(1,'rgba(0,0,0,0)');
+      X.fillStyle=g;X.fillRect(px,py+T-sw,T,sw);
     }
   }
 }
 
-function drawFurniture(r,c,ox,oy,frame){
-  const px=ox+c*T,py=oy+r*T,v=G[r][c];
-  const s=T/32;
+function plaque(text,cx,cy,maxW){
+  let fs=Math.max(8,Math.round(T*0.24));
+  X.font=`bold ${fs}px 'Courier New',monospace`;
+  let tw=X.measureText(text).width;
+  if(tw>maxW){fs=Math.max(7,Math.floor(fs*maxW/tw));X.font=`bold ${fs}px 'Courier New',monospace`;tw=X.measureText(text).width;}
+  const w=tw+10,h=fs+8;
+  X.fillStyle='#1c1814';X.fillRect(cx-w/2-1,cy-h/2-1,w+2,h+2);
+  X.fillStyle='#8a6a28';X.fillRect(cx-w/2,cy-h/2,w,h);
+  X.fillStyle='#d8b050';X.fillRect(cx-w/2+1,cy-h/2+1,w-2,h-2);
+  X.fillStyle='#2a1c08';X.textAlign='center';X.textBaseline='middle';X.fillText(text,cx,cy+1);
+  X.textAlign='left';
+}
 
+function drawWallDecor(){
+  const bw=Math.max(4,Math.round(T*0.2));
+  // windows with light beams
+  for(const wc of [2,4,14,16,19]){
+    const px=wc*T;
+    X.fillStyle='#6a604c';X.fillRect(px+3,T*0.1,T-6,T-bw-T*0.1-1);
+    const g=X.createLinearGradient(0,T*0.15,0,T-bw);g.addColorStop(0,'#7fb0e0');g.addColorStop(1,'#cfe6f6');
+    X.fillStyle=g;X.fillRect(px+5,T*0.15,T-10,T-bw-T*0.15-4);
+    X.fillStyle='#6a604c';X.fillRect(px+T/2-1,T*0.15,2,T-bw-T*0.15-4);
+    X.fillRect(px+5,T*0.45,T-10,2);
+    X.fillStyle='#8a7e66';X.fillRect(px+1,T-bw-3,T-2,3);
+    X.fillStyle='rgba(255,236,190,0.07)';
+    X.beginPath();X.moveTo(px+4,T);X.lineTo(px+T-4,T);X.lineTo(px+T*2.6,T*5.2);X.lineTo(px+T*1.3,T*5.2);X.closePath();X.fill();
+  }
+  // framed art on the left wall
+  for(const pr of [2,9]){
+    const px=0,py=pr*T;
+    X.fillStyle='#1c1814';X.fillRect(px+3,py+T*0.15,T-bw-6,T*0.7);
+    X.fillStyle='#8a7050';X.fillRect(px+4,py+T*0.15+1,T-bw-8,T*0.7-2);
+    X.fillStyle=pr===2?'#c06030':'#3060c0';X.fillRect(px+6,py+T*0.15+3,T-bw-12,T*0.7-6);
+    X.fillStyle=pr===2?'#e8a060':'#70a0e0';X.fillRect(px+6,py+T*0.15+3,T-bw-12,Math.max(2,T*0.18));
+  }
+  // room signs
+  plaque("ABM'S OFFICE",8.5*T,T*0.45,T*3);
+  plaque('CONFERENCE',7.5*T,7.5*T,T*3);
+  plaque('BREAK ROOM',16*T,17.5*T,T*3.2);
+  // ceiling light fixtures and glow
+  for(const lc of [5,11,16,21]){
+    const lx=lc*T+T/2,ly=T;
+    const g=X.createRadialGradient(lx,ly+T*1.2,0,lx,ly+T*1.2,T*3);
+    g.addColorStop(0,'rgba(255,240,200,0.10)');g.addColorStop(1,'rgba(255,240,200,0)');
+    X.fillStyle=g;X.fillRect(lx-T*3,ly-T,T*6,T*6);
+  }
+}
+
+/* Furniture drawn into the static layer (everything that never animates) */
+function furnStatic(r,c){
+  const px=c*T,py=r*T,v=G[r][c];at(px,py,T/32);
   if(v===2){
-    X.fillStyle='#9a7a3a';X.fillRect(px+2*s,py+4*s,28*s,22*s);
-    X.fillStyle='#8a6a2a';X.fillRect(px+2*s,py+22*s,28*s,4*s);
-    X.fillStyle='#6a4a1a';X.fillRect(px+3*s,py+26*s,3*s,6*s);X.fillRect(px+26*s,py+26*s,3*s,6*s);
-    X.fillStyle='#222';X.fillRect(px+8*s,py+1*s,16*s,13*s);
-    X.fillStyle='#1a2a1a';X.fillRect(px+9*s,py+2*s,14*s,10*s);
-    X.fillStyle='#30e060';
-    for(let i=0;i<4;i++){
-      const lw=8+Math.abs(Math.sin(frame*0.02+i*2+c))*5;
-      X.fillRect(px+10*s,py+(3+i*2)*s,lw*s,1*s);
-    }
-    X.fillStyle='#333';X.fillRect(px+14*s,py+14*s,4*s,2*s);X.fillRect(px+12*s,py+15*s,8*s,2*s);
-    X.fillStyle='#444';X.fillRect(px+10*s,py+19*s,12*s,4*s);
-    X.fillStyle='#555';X.fillRect(px+11*s,py+20*s,10*s,2*s);
-    if((r+c)%3===0){
-      X.fillStyle='#e0d0c0';X.fillRect(px+23*s,py+16*s,5*s,6*s);
-      X.fillStyle='#6a4a2a';X.fillRect(px+24*s,py+17*s,3*s,4*s);
-    }
+    b(1,9,30,19,'#2e1e0a');
+    b(2,10,28,15,'#a6803f');b(2,10,28,2,'#c29a52');
+    b(4,15,10,1,'#946f33');b(16,19,11,1,'#946f33');b(6,21,7,1,'#946f33');
+    b(2,23,28,4,'#7c5a26');b(2,26,28,1,'#5e4318');
+    b(3,27,3,5,'#4a3416');b(26,27,3,5,'#4a3416');
+    b(9,17,14,5,'#1e1e22');
+    for(let i=0;i<3;i++)b(10,18+i*1.4,12,0.8,'#4a4a54');
+    b(25,18,3,4,'#d8d8d8');b(25,18,3,1,'#9a9a9a');
+    b(3,13,5,6,'#f4f4f4');b(4,14,3,2,'#5a3418');b(8,14.5,1.5,3,'#f4f4f4');
+    b(24,12,6,4,'#f4efe0');b(25,11,6,4,'#e6e0cc');
+    b(13,13,6,4,'#34343a');
+    b(5,-3,22,17,'#0c0c10');b(6,-2,20,15,'#2a2a32');
   }
   if(v===4){
-    const sw=Math.sin(frame*0.015+c)*1.5*s;
-    X.fillStyle='#b04030';X.fillRect(px+10*s,py+20*s,12*s,10*s);
-    X.fillStyle='#c05040';X.fillRect(px+8*s,py+18*s,16*s,4*s);
-    X.fillStyle='#4a3020';X.fillRect(px+10*s,py+18*s,12*s,3*s);
-    X.fillStyle='#3a8a3a';X.beginPath();X.ellipse(px+14*s+sw,py+10*s,5*s,9*s,-0.3,0,Math.PI*2);X.fill();
-    X.fillStyle='#4aa04a';X.beginPath();X.ellipse(px+20*s-sw,py+8*s,4*s,10*s,0.3,0,Math.PI*2);X.fill();
-    X.fillStyle='#3a9a3a';X.beginPath();X.ellipse(px+16*s,py+6*s,4*s,11*s,0,0,Math.PI*2);X.fill();
+    b(9,20,14,11,'#2e1608');
+    b(10,21,12,9,'#8a3a2a');b(10,21,12,2,'#a85040');b(11,22,3,8,'#9c4634');
+    b(8,19,16,3,'#a04a38');b(10,19,12,2,'#3a2412');
   }
   if(v===5){
-    X.fillStyle='#6a4a2a';X.fillRect(px+2*s,py+2*s,28*s,28*s);
-    X.fillStyle='#5a3a1a';X.fillRect(px+4*s,py+10*s,24*s,2*s);X.fillRect(px+4*s,py+20*s,24*s,2*s);
+    b(1,1,30,30,'#2a1a0a');
+    b(2,2,28,28,'#6a4a2a');
+    b(2,2,28,2,'#8a6a40');
+    b(4,10,24,2,'#4a3018');b(4,20,24,2,'#4a3018');
     const bc=['#c04040','#4080c0','#40a060','#c0a040','#a060c0','#e07030','#50a0a0','#c06080'];
     for(let sh=0;sh<3;sh++){
-      let bx=px+5*s;const by=py+(sh===0?3:sh===1?12:22)*s;
-      for(let b=0;b<4;b++){
-        X.fillStyle=bc[(sh*4+b+c)%bc.length];
-        const bw=ri(4,6)*s;X.fillRect(bx,by,bw,7*s);bx+=bw+1*s;
+      let bx=5;const by=sh===0?4:sh===1?13:23;
+      for(let k=0;k<4;k++){
+        const bwid=4+((r*7+c*3+sh*5+k*11)%3);
+        const bh=6+((r+c+sh+k)%3);
+        b(bx,by+(7-bh)+(sh===0?0:0),bwid,bh,bc[(sh*4+k+r+c)%bc.length]);
+        b(bx,by+(7-bh),bwid,1,'rgba(255,255,255,0.2)');
+        bx+=bwid+1;
       }
     }
   }
   if(v===6){
-    X.fillStyle='#555';X.fillRect(px+1*s,py+4*s,30*s,20*s);
-    X.fillStyle='#e8e0d0';X.fillRect(px+3*s,py+6*s,26*s,16*s);
-    X.fillStyle='#3060a0';X.fillRect(px+5*s,py+8*s,18*s,1.5*s);
-    X.fillStyle='#a03030';X.fillRect(px+5*s,py+12*s,14*s,1.5*s);
-    X.fillStyle='#30a030';X.fillRect(px+5*s,py+16*s,20*s,1.5*s);
-    X.fillStyle='#444';X.fillRect(px+6*s,py+23*s,20*s,3*s);
-    X.fillStyle='#c03030';X.fillRect(px+8*s,py+22*s,2*s,4*s);
-    X.fillStyle='#3060c0';X.fillRect(px+12*s,py+22*s,2*s,4*s);
-    X.fillStyle='#30a030';X.fillRect(px+16*s,py+22*s,2*s,4*s);
+    b(0,3,32,23,'#2a2a2a');
+    b(1,4,30,21,'#55555a');
+    b(3,6,26,17,'#eee8da');
+    b(5,8,17,1.5,'#3060a0');b(5,12,13,1.5,'#a03030');b(5,16,19,1.5,'#30a030');
+    b(23,8,4,4,'#f0d040');b(23,14,4,4,'#f08090');
+    b(5,24,22,3,'#444');
+    b(8,23,2,4,'#c03030');b(12,23,2,4,'#3060c0');b(16,23,2,4,'#30a030');
   }
   if(v===7){
-    X.fillStyle='#777';X.fillRect(px+10*s,py+16*s,12*s,14*s);
-    X.fillStyle='#90c8e0';X.fillRect(px+11*s,py+4*s,10*s,14*s);
-    X.fillStyle='rgba(140,200,220,0.4)';X.fillRect(px+12*s,py+8*s,8*s,8*s);
-    X.fillStyle='#aaa';X.fillRect(px+14*s,py+17*s,4*s,2*s);
-    X.fillStyle='#e0d8d0';X.fillRect(px+20*s,py+24*s,4*s,5*s);
+    b(9,15,14,16,'#2a2a2a');
+    b(10,16,12,14,'#8a8a90');b(10,16,12,2,'#b0b0b8');
+    b(11,2,10,15,'#3a5a70');b(12,3,8,13,'#90c8e0');b(12,3,3,13,'#b8e0f0');
+    b(13,17,6,3,'#aa2020');b(15,17,3,3,'#2060c0');
+    b(10,29,12,2,'#555');
+    b(23,24,4,6,'#f0ece4');b(23,24,4,1,'#c8c4bc');
   }
   if(v===9){
-    X.fillStyle='#e0d8d0';X.fillRect(px+4*s,py+10*s,24*s,16*s);
-    X.fillStyle='#ccc';X.fillRect(px+6*s,py+12*s,20*s,6*s);
-    X.fillStyle='#444';X.fillRect(px+8*s,py+14*s,4*s,2*s);
-    X.fillStyle='#f0ece0';X.fillRect(px+10*s,py+8*s,12*s,4*s);
-    X.fillStyle=frame%120<60?'#40c040':'#206020';X.fillRect(px+22*s,py+20*s,3*s,2*s);
+    b(3,9,26,19,'#2a2a2a');
+    b(4,10,24,17,'#e0d8cc');b(4,10,24,2,'#f0ece4');
+    b(6,13,20,6,'#bfb8ac');b(8,15,5,2,'#444');
+    b(9,6,14,5,'#f4f0e4');b(10,5,12,2,'#fff');
+    b(5,22,22,2,'#a8a094');
   }
   if(v===10){
-    X.fillStyle='#6a5040';X.fillRect(px+2*s,py+8*s,28*s,18*s);
-    X.fillStyle='#7a6050';X.fillRect(px+4*s,py+10*s,24*s,12*s);
-    X.fillStyle='#8a7060';X.fillRect(px+5*s,py+11*s,10*s,10*s);X.fillRect(px+17*s,py+11*s,10*s,10*s);
-    X.fillStyle='#5a4030';X.fillRect(px+1*s,py+8*s,4*s,20*s);X.fillRect(px+27*s,py+8*s,4*s,20*s);
+    const L=G[r][c-1]===10,Rr=G[r][c+1]===10;
+    b(1,6,30,22,'#2a1a10');
+    b(2,7,28,20,'#6a4a38');
+    b(2,7,28,5,'#80604a');
+    b(Rr?0:5,12,Rr?32:27,12,'#8a6850');
+    if(!L){b(1,7,5,21,'#573a2a');b(1,7,5,3,'#6c4c3a');}
+    if(!Rr){b(26,7,5,21,'#573a2a');b(26,7,5,3,'#6c4c3a');}
+    b(Rr?16:7,13,1,10,'#6a4a38');
+    b(3,27,3,3,'#2a1a10');b(26,27,3,3,'#2a1a10');
   }
 }
 
-/* Wall decorations */
-function drawWallDecor(ox,oy){
-  // Windows on top wall
-  for(const wc of [2,4,14,16,19]){
-    if(G[0][wc]!==1)continue;
-    const px=ox+wc*T,py=oy;
-    X.fillStyle='#3a4a5a';X.fillRect(px+3,py+T*0.2,T-6,T*0.65);
-    X.fillStyle='#5a7a9a';X.fillRect(px+5,py+T*0.25,T-10,T*0.55);
-    X.strokeStyle='#3a4a5a';X.lineWidth=2;
-    X.beginPath();X.moveTo(px+T/2,py+T*0.25);X.lineTo(px+T/2,py+T*0.8);X.stroke();
-    X.beginPath();X.moveTo(px+5,py+T*0.52);X.lineTo(px+T-5,py+T*0.52);X.stroke();
-  }
-  // Wall paintings
-  for(const pr of [2,9]){
-    const px=ox,py=oy+pr*T;
-    X.fillStyle='#8a7050';X.fillRect(px+T*0.2,py+3,T*0.6,T*0.65);
-    X.fillStyle=pr===2?'#c06030':'#3060c0';
-    X.fillRect(px+T*0.25,py+5,T*0.5,T*0.55);
-  }
-  // Clock on divider wall
-  const cx=ox+12*T+T/2,cy=oy+T*0.5;
-  X.fillStyle='#ddd';X.beginPath();X.arc(cx,cy,T*0.3,0,Math.PI*2);X.fill();
-  X.strokeStyle='#333';X.lineWidth=2;X.beginPath();X.arc(cx,cy,T*0.3,0,Math.PI*2);X.stroke();
-  const now=new Date();
-  const ha=((now.getHours()%12)+now.getMinutes()/60)*Math.PI/6-Math.PI/2;
-  const ma=now.getMinutes()*Math.PI/30-Math.PI/2;
-  X.strokeStyle='#333';X.lineWidth=2;
-  X.beginPath();X.moveTo(cx,cy);X.lineTo(cx+Math.cos(ha)*T*0.15,cy+Math.sin(ha)*T*0.15);X.stroke();
-  X.lineWidth=1;
-  X.beginPath();X.moveTo(cx,cy);X.lineTo(cx+Math.cos(ma)*T*0.22,cy+Math.sin(ma)*T*0.22);X.stroke();
-  // Ceiling light pools
-  for(const lc of [5,11,16,21]){
-    const lx=ox+lc*T+T/2,ly=oy+T;
-    X.fillStyle='rgba(255,240,200,0.06)';
-    X.beginPath();X.ellipse(lx,ly+T,T*2,T*2.5,0,0,Math.PI*2);X.fill();
-    X.fillStyle='#bbb';X.fillRect(lx-T*0.18,ly-3,T*0.36,3);
+function buildLayer(){
+  LC.width=Math.round(GC*T*DPR);LC.height=Math.round(GR*T*DPR);
+  LX=LC.getContext('2d');LX.setTransform(DPR,0,0,DPR,0,0);
+  X=LX;X.imageSmoothingEnabled=false;
+  for(let r=0;r<GR;r++)for(let c=0;c<GC;c++)drawTile(r,c);
+  drawFloorShadows();
+  drawWallDecor();
+  for(let r=0;r<GR;r++)for(let c=0;c<GC;c++)if(G[r][c]>=2)furnStatic(r,c);
+  const vg=X.createRadialGradient(GC*T/2,GR*T/2,GR*T*0.35,GC*T/2,GR*T/2,GC*T*0.7);
+  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,0.32)');
+  X.fillStyle=vg;X.fillRect(0,0,GC*T,GR*T);
+  X=MX;
+}
+
+/* ───────── Dynamic furniture ───────── */
+const DYN=[];
+for(let r=0;r<GR;r++)for(let c=0;c<GC;c++){const v=G[r][c];if(v===2||v===4||v===7||v===9)DYN.push({v,r,c,agent:v===2?(DESKS.find(d=>d.r===r&&d.c===c)||{}).agent:null});}
+
+function screen(a,tt,work){
+  const col=CATS[a.cat];
+  b(8,-1,16,12,work?'#08131a':'#14161a');
+  if(!work){if(((tt*0.6)|0)%2)b(15,4,2,1,'#2a3a50');return;}
+  const p=a.job&&a.job.p!=null?a.job.p:(tt*12)%100;
+  switch(a.cat){
+    case'ads':
+      for(let i=0;i<5;i++){const h=2+Math.abs(Math.sin(tt*1.2+i*1.7))*6;b(9.5+i*2.8,10-h,2,h,i%2?col:shade(col,0.15));}
+      b(9,10,15,0.8,'#3a5a90');break;
+    case'video':
+      b(9,1,14,2,'#2a1a3a');
+      b(9,4,9,2,'#7040a0');b(9,7,12,2,'#4060a0');b(19,4,4,2,'#a05080');
+      b(9+p/100*14,0,0.8,10,'#ff4040');break;
+    case'design':
+      b(10,1,6,6,'#f06090');b(15,4,6,5,'#4090e0');b(12,6,4,3,'#f0d040');
+      b(9,10,15,0.8,'#554');break;
+    case'writing':{
+      for(let i=0;i<5;i++)b(9.5,1+i*2,5+((i*7)%9),1,'#d8d0b0');
+      if(((tt*2)|0)%2)b(9.5+5+(((4*7)%9)),9,1,1,'#fff');break;}
+    case'sheets':
+      for(let i=0;i<4;i++)b(9,1+i*2.6,15,0.5,'#2a6a3a');
+      for(let i=0;i<4;i++)b(9+i*3.8,0,0.5,11,'#2a6a3a');
+      b(9+(((tt*1.5)|0)%4)*3.8,1+(((tt*0.7)|0)%4)*2.6,3.8,2.6,'rgba(120,230,150,0.5)');break;
+    case'backup':
+      b(9,4,15,3,'#1c3238');b(9.5,4.5,14*(p/100),2,col);
+      b(9,8,6,1,'#5a8a90');b(9,1,8,1,'#5a8a90');break;
+    case'email':
+      for(let i=0;i<4;i++){b(9,1+i*2.7,2,2,i===((tt|0)%4)?'#ffb060':'#6a4a30');b(12,1.5+i*2.7,10,1,'#b09070');}break;
+    case'social':
+      b(9,1,6,4,'#e05050');b(16,1,7,4,'#5090e0');b(9,6,6,4,'#50c070');b(16,6,7,4,'#e0b040');
+      if(((tt*1.5)|0)%2)b(14,3,2,2,'#fff');break;
+    case'media':
+      for(let i=0;i<14;i++){const h=1+Math.abs(Math.sin(tt*3+i*0.8))*7;b(9+i,5.5-h/2,0.8,h,col);}break;
+    case'docs':
+      b(11,0,11,10,'#e8e8e8');
+      for(let i=0;i<4;i++)b(12,1.5+i*2,8,0.8,'#8a8a98');break;
+    case'web':
+      b(9,0,15,2,'#2a4a6a');b(10,0.5,6,1,'#7ab0e0');
+      b(9,3,7,6,'#3a6a9a');b(17,3,7,3,'#5a8aba');b(17,7,7,2,'#2a4a6a');break;
+    case'data':
+      for(let i=0;i<5;i++)for(let j=0;j<7;j++){
+        const on=Math.sin(tt*2+i*2.1+j*3.3)>0.1;
+        b(9.5+j*2,1+i*2,1.2,1.2,on?col:'#2a4a18');
+      }break;
+    default:
+      b(9,1,4,8,'#5a4a20');b(14,1,4,8,col);b(19,1,4,8,'#5a4a20');
+      b(9+(tt*3%14),9,2,1,'#fff');
   }
 }
 
-/* ── Office container — rounded border with depth ── */
-function drawContainer(ox,oy){
-  const pw=GC*T,ph=GR*T;
-  const pad=4,rad=12;
-  // Outer shadow
-  X.fillStyle='rgba(0,0,0,0.4)';
-  X.beginPath();X.roundRect(ox-pad-2,oy-pad-2,pw+pad*2+4,ph+pad*2+4,rad+2);X.fill();
-  // Outer border
-  X.fillStyle='#1a1816';
-  X.beginPath();X.roundRect(ox-pad,oy-pad,pw+pad*2,ph+pad*2,rad);X.fill();
-  // Inner highlight
-  X.strokeStyle='#3a3530';X.lineWidth=2;
-  X.beginPath();X.roundRect(ox-pad+1,oy-pad+1,pw+pad*2-2,ph+pad*2-2,rad-1);X.stroke();
-}
-
-/* ── Character Drawing ── */
-function drawChar(agent,ox,oy,frame){
-  const gx=agent.x,gy=agent.y;
-  const px=ox+gx*T,py=oy+gy*T;
-  const s=T/32;
-  const sitting=agent.state==='sit';
-  const walking=agent.state==='walk';
-  const sc=agent.shirt,hc=agent.hair;
-  X.imageSmoothingEnabled=false;
-
-  // Shadow
-  X.fillStyle='rgba(0,0,0,0.25)';
-  X.beginPath();X.ellipse(px+16*s,py+30*s,10*s,4*s,0,0,Math.PI*2);X.fill();
-
-  if(sitting){
-    // Chair
-    X.fillStyle='#454545';X.fillRect(px+4*s,py+6*s,24*s,16*s);
-    X.fillStyle='#3a3a3a';X.fillRect(px+6*s,py+20*s,20*s,4*s);
-    X.fillStyle='#555';X.fillRect(px+14*s,py+24*s,4*s,4*s);
-    X.fillStyle='#444';X.fillRect(px+8*s,py+27*s,16*s,3*s);
-    X.fillStyle='#333';X.fillRect(px+8*s,py+29*s,4*s,3*s);X.fillRect(px+20*s,py+29*s,4*s,3*s);
-    const tb=Math.sin(frame*0.08)*0.5*s;
-    X.fillStyle='#3a3530';X.fillRect(px+8*s,py+21*s,6*s,3*s);X.fillRect(px+18*s,py+21*s,6*s,3*s);
-    X.fillStyle=sc;X.fillRect(px+7*s,py+10*s,18*s,12*s);
-    X.fillStyle=sc;X.fillRect(px+3*s,py+12*s+tb,5*s,8*s);X.fillRect(px+24*s,py+12*s-tb,5*s,8*s);
-    X.fillStyle=SKIN;X.fillRect(px+3*s,py+19*s+tb,5*s,3*s);X.fillRect(px+24*s,py+19*s-tb,5*s,3*s);
-    X.fillStyle=SKIN;X.fillRect(px+8*s,py+2*s,16*s,10*s);
-    X.fillStyle=hc;X.fillRect(px+7*s,py+0*s,18*s,5*s);X.fillRect(px+7*s,py+2*s,3*s,4*s);X.fillRect(px+22*s,py+2*s,3*s,4*s);
-    X.fillStyle='#222';X.fillRect(px+11*s,py+5*s,3*s,3*s);X.fillRect(px+18*s,py+5*s,3*s,3*s);
-    X.fillStyle='#fff';X.fillRect(px+11*s,py+5*s,2*s,2*s);X.fillRect(px+18*s,py+5*s,2*s,2*s);
-    X.fillStyle='#a05040';X.fillRect(px+13*s,py+9*s,6*s,1.5*s);
-    // Boss crown
-    if(agent.isBoss){
-      X.fillStyle='#f0c020';
-      X.fillRect(px+9*s,py-4*s,14*s,4*s);
-      X.fillRect(px+9*s,py-6*s,3*s,3*s);
-      X.fillRect(px+14*s,py-7*s,4*s,4*s);
-      X.fillRect(px+20*s,py-6*s,3*s,3*s);
+function drawDyn(tt){
+  for(const d of DYN){
+    const px=OX+d.c*T,py=OY+d.r*T;at(px,py,T/32);
+    if(d.v===2){
+      const a=d.agent;
+      const work=!!(a&&a.state==='sit'&&a.job);
+      screen(a,tt+d.c,work);
+      if(work){
+        X.fillStyle=CATS[a.cat];X.globalAlpha=0.07;
+        X.fillRect(px+2*T/32,py+9*T/32,28*T/32,12*T/32);X.globalAlpha=1;
+      }
+      b(8,-1,16,0.8,'rgba(255,255,255,0.12)');
     }
-  } else {
-    const legA=walking?Math.sin(frame*0.15)*4*s:0;
-    const armA=walking?Math.sin(frame*0.15)*3*s:0;
-    X.fillStyle='#3a3530';X.fillRect(px+8*s,py+20*s-legA,6*s,8*s);X.fillRect(px+18*s,py+20*s+legA,6*s,8*s);
-    X.fillStyle='#2a2020';X.fillRect(px+7*s,py+27*s-legA,7*s,4*s);X.fillRect(px+18*s,py+27*s+legA,7*s,4*s);
-    X.fillStyle=sc;X.fillRect(px+7*s,py+10*s,18*s,12*s);
-    X.fillStyle=sc;X.fillRect(px+2*s,py+10*s+armA,6*s,10*s);X.fillRect(px+24*s,py+10*s-armA,6*s,10*s);
-    X.fillStyle=SKIN;X.fillRect(px+2*s,py+19*s+armA,6*s,3*s);X.fillRect(px+24*s,py+19*s-armA,6*s,3*s);
-    X.fillStyle=SKIN;X.fillRect(px+8*s,py+0*s,16*s,12*s);
-    X.fillStyle=hc;X.fillRect(px+7*s,py-2*s,18*s,6*s);X.fillRect(px+7*s,py+0*s,3*s,5*s);X.fillRect(px+22*s,py+0*s,3*s,5*s);
-    X.fillStyle='#222';X.fillRect(px+11*s,py+4*s,3*s,3*s);X.fillRect(px+18*s,py+4*s,3*s,3*s);
-    X.fillStyle='#fff';X.fillRect(px+11*s,py+4*s,2*s,2*s);X.fillRect(px+18*s,py+4*s,2*s,2*s);
-    X.fillStyle='#a05040';X.fillRect(px+13*s,py+8*s,6*s,1.5*s);
-    // Boss crown
-    if(agent.isBoss){
-      X.fillStyle='#f0c020';
-      X.fillRect(px+9*s,py-6*s,14*s,4*s);
-      X.fillRect(px+9*s,py-8*s,3*s,3*s);
-      X.fillRect(px+14*s,py-9*s,4*s,4*s);
-      X.fillRect(px+20*s,py-8*s,3*s,3*s);
+    if(d.v===4){
+      const sw=Math.sin(tt*0.9+d.c)*1.4;
+      X.fillStyle='#2f7a34';X.beginPath();X.ellipse(px+(13+sw)*T/32,py+11*T/32,5*T/32,10*T/32,-0.35,0,Math.PI*2);X.fill();
+      X.fillStyle='#4aa04c';X.beginPath();X.ellipse(px+(20-sw)*T/32,py+10*T/32,4.5*T/32,10*T/32,0.35,0,Math.PI*2);X.fill();
+      X.fillStyle='#3a9a3e';X.beginPath();X.ellipse(px+16*T/32,py+8*T/32,4.5*T/32,12*T/32,0,0,Math.PI*2);X.fill();
+      X.fillStyle='#6cc06c';X.beginPath();X.ellipse(px+(17+sw*0.4)*T/32,py+5*T/32,1.6*T/32,5*T/32,0.2,0,Math.PI*2);X.fill();
     }
-  }
-
-  // Name label
-  const fs=Math.max(9,Math.round(T*0.32));
-  X.font=`bold ${fs}px 'Courier New',monospace`;
-  const nm=agent.isBoss?'★ '+agent.name:agent.name;
-  const tw=X.measureText(nm).width;
-  const lx=px+16*s-tw/2-5,ly=py+32*s+2;
-  X.fillStyle=agent.isBoss?'rgba(60,40,10,0.92)':'rgba(15,12,8,0.88)';
-  X.fillRect(lx,ly,tw+10,15);
-  X.strokeStyle=agent.isBoss?'#8a6a20':'#2a2018';X.lineWidth=1;X.strokeRect(lx,ly,tw+10,15);
-  X.fillStyle=agent.isBoss?'#f0c040':'#e0c0a0';
-  X.textAlign='center';X.textBaseline='middle';
-  X.fillText(nm,px+16*s,ly+7.5);
-  X.textAlign='left';
-
-  // Speech bubble
-  if(agent.bubbleT>0) drawBubble(px+16*s,py-6*s,agent.bubble,agent.bubble.startsWith('<'));
-}
-
-function drawBubble(x,y,text,isTask){
-  X.font=`${Math.max(8,Math.round(T*0.28))}px 'Courier New',monospace`;
-  const tw=X.measureText(text).width;
-  const bw=tw+14,bh=17,bx=x-bw/2,by=y-bh;
-  const clampX=Math.max(2,Math.min(bx,W-bw-2));
-  X.fillStyle=isTask?'rgba(240,160,48,0.94)':'rgba(15,12,8,0.9)';
-  X.beginPath();X.roundRect(clampX,by,bw,bh,4);X.fill();
-  X.strokeStyle=isTask?'#b07020':'#3a3020';X.lineWidth=1;
-  X.beginPath();X.roundRect(clampX,by,bw,bh,4);X.stroke();
-  X.fillStyle=isTask?'rgba(240,160,48,0.94)':'rgba(15,12,8,0.9)';
-  X.beginPath();X.moveTo(x-3,by+bh);X.lineTo(x+3,by+bh);X.lineTo(x,by+bh+5);X.fill();
-  X.fillStyle=isTask?'#1a1410':'#d0b890';
-  X.textAlign='center';X.textBaseline='middle';
-  X.fillText(text,clampX+bw/2,by+bh/2);
-  X.textAlign='left';
-}
-
-/* ── Agent AI ── */
-function updateAgent(a){
-  a.frame++;
-  a.stateT--;
-  if(a.bubbleT>0)a.bubbleT--;
-
-  if(a.state==='sit'&&a.stateT<=0){
-    const r=Math.random();
-    if(r<0.25){
-      a.state='walk';a.bubble='heading to board';a.bubbleT=120;
-      a.path=pathFind(a.y,a.x,BOARD.r,BOARD.c);a.walkTo='board';
-    } else if(r<0.38){
-      a.state='walk';a.bubble='getting coffee';a.bubbleT=100;
-      a.path=pathFind(a.y,a.x,COOLER.r,COOLER.c-1);a.walkTo='coffee';
-    } else if(r<0.48){
-      a.state='walk';const sp=rand(BREAK_SPOTS);
-      a.bubble='heading to break room';a.bubbleT=100;
-      a.path=pathFind(a.y,a.x,sp.r,sp.c);a.walkTo='break';
-    } else if(r<0.55){
-      a.state='walk';const sp=rand(CONF_SPOTS);
-      a.bubble='heading to meeting';a.bubbleT=100;
-      a.path=pathFind(a.y,a.x,sp.r,sp.c);a.walkTo='conf';
-    } else {
-      a.task=rand(TASKS);a.bubble='< '+a.task;a.bubbleT=200;a.stateT=ri(250,600);
-    }
-  }
-  if(a.state==='stand'&&a.stateT<=0){
-    a.state='walk';a.bubble='heading back to desk';a.bubbleT=100;
-    a.path=pathFind(Math.round(a.y),Math.round(a.x),a.desk.chairR,a.desk.chairC);a.walkTo='desk';
-  }
-  if(a.state==='walk'){
-    if(a.path.length>0){
-      const next=a.path[0];
-      const dx=next.c-a.x,dy=next.r-a.y;
-      const dist=Math.sqrt(dx*dx+dy*dy);
-      if(dist<a.speed*1.5){a.x=next.c;a.y=next.r;a.path.shift();}
-      else{a.x+=dx/dist*a.speed;a.y+=dy/dist*a.speed;}
-    }
-    if(a.path.length===0){
-      if(a.walkTo==='desk'){
-        a.state='sit';a.x=a.desk.chairC;a.y=a.desk.chairR;
-        a.task=rand(TASKS);a.bubble='< '+a.task;a.bubbleT=200;a.stateT=ri(250,600);
-      } else {
-        a.state='stand';
-        a.bubble=a.walkTo==='board'?'updating task board':
-                 a.walkTo==='coffee'?'drinking coffee':
-                 a.walkTo==='conf'?'< reviewing progress':'relaxing';
-        a.bubbleT=150;a.stateT=ri(100,250);
+    if(d.v===7){
+      for(let i=0;i<3;i++){
+        const f=((tt*0.9+i/3)%1);
+        b(14+Math.sin(i*2)*2,14-f*10,1.5,1.5,'rgba(220,245,255,'+(0.9-f*0.8)+')');
       }
     }
-  }
-}
-
-/* ── Clock ── */
-let simMin=540;
-function tickClock(){
-  simMin+=0.12;if(simMin>=1080)simMin=540;
-  const h=Math.floor(simMin/60),m=Math.floor(simMin%60);
-  const ap=h>=12?'PM':'AM',h12=h>12?h-12:h===0?12:h;
-  document.getElementById('clock').textContent=`${h12}:${String(m).padStart(2,'0')} ${ap}`;
-  const labels=['CLOCK IN','STANDUP','DEEP WORK','LUNCH','DEEP WORK','REVIEW','WRAP UP'];
-  document.getElementById('clockLabel').textContent=labels[Math.min(Math.floor((simMin-540)/80),6)];
-}
-
-/* ── Status messages — real PC work ── */
-const MSGS=[
-  'All workers active...','Facebook Ads campaign running...','Video render: 78% complete',
-  'Blog draft: 1,240 words written','Image batch: 23/50 processed','Cloud backup in progress...',
-  'Social posts scheduled for the week','Video compression: saving 2.1 GB',
-  'Email campaign sent to 3,400 contacts','YouTube upload: processing HD...',
-  'Podcast episode exported','Thumbnails generated: 12 variants',
-  'Screen recording: 4:32 elapsed','Presentation: 18 slides complete',
-  'Facebook ROAS: 4.2x this week','ABM assigned 3 new tasks',
-  'Dropbox sync: 94% complete','WordPress updated to latest version',
-];
-
-/* ── Main Loop ── */
-let fc=0,statusTick=0;
-function loop(){
-  fc++;
-  X.clearRect(0,0,W,H);
-  X.fillStyle='#151210';X.fillRect(0,0,W,H);
-
-  const ox=Math.round((W-GC*T)/2),oy=Math.round((H-GR*T)/2);
-
-  // Container with depth
-  drawContainer(ox,oy);
-
-  // Floor & walls
-  for(let r=0;r<GR;r++)for(let c=0;c<GC;c++)drawTile(r,c,ox,oy);
-
-  // Floor shadows (ambient occlusion)
-  drawFloorShadows(ox,oy);
-
-  drawWallDecor(ox,oy);
-
-  // Furniture
-  for(let r=0;r<GR;r++)for(let c=0;c<GC;c++){
-    if(G[r][c]>=2)drawFurniture(r,c,ox,oy,fc);
-  }
-
-  // Agents
-  for(const a of agents)updateAgent(a);
-  const sorted=[...agents].sort((a,b)=>a.y-b.y);
-  for(const a of sorted)drawChar(a,ox,oy,fc);
-
-  // UI updates
-  statusTick++;
-  if(statusTick%180===0)document.getElementById('status').textContent=rand(MSGS);
-  if(statusTick%50===0)tickClock();
-  const wk=agents.filter(a=>a.state==='sit').length;
-  document.getElementById('agentCount').textContent=`${agents.length} workers · ${wk} active`;
-
-  // Task board rotation
-  if(statusTick%350===0){
-    const ti=ri(0,board.length-1);
-    if(board[ti].st==='wk'&&Math.random()>0.4){
-      board[ti].st='done';
-      board.push({id:'task-'+(board.length+1),name:rand(TASKS),st:'wk',who:rand(agents).name});
-      if(board.length>12)board.shift();
-    } else if(board[ti].st==='qu'){
-      board[ti].st='wk';board[ti].who=rand(agents).name;
+    if(d.v===9){
+      b(22,19,3,2,((tt*1.2)|0)%2?'#40e040':'#1a5a1a');
     }
-    renderPanel();
   }
-  if(statusTick%120===0)renderPanel();
-
-  requestAnimationFrame(loop);
 }
-loop();
+
+function drawContainer(){
+  const pw=GC*T,ph=GR*T,pad=6,rad=14;
+  X.fillStyle='rgba(0,0,0,0.5)';
+  X.beginPath();X.roundRect(OX-pad-3,OY-pad-1,pw+pad*2+6,ph+pad*2+6,rad+3);X.fill();
+  X.fillStyle='#14110e';
+  X.beginPath();X.roundRect(OX-pad,OY-pad,pw+pad*2,ph+pad*2,rad);X.fill();
+  X.strokeStyle='#4a4236';X.lineWidth=2;
+  X.beginPath();X.roundRect(OX-pad+1,OY-pad+1,pw+pad*2-2,ph+pad*2-2,rad-1);X.stroke();
+}
+
+function drawClock(){
+  const cx=OX+12*T+T/2,cy=OY+T*0.42,rad=T*0.27;
+  X.fillStyle='#1c1814';X.beginPath();X.arc(cx,cy,rad+2,0,Math.PI*2);X.fill();
+  X.fillStyle='#ece6d8';X.beginPath();X.arc(cx,cy,rad,0,Math.PI*2);X.fill();
+  X.fillStyle='#555';
+  for(let i=0;i<12;i++){const an=i*Math.PI/6;X.fillRect(cx+Math.cos(an)*rad*0.82-0.5,cy+Math.sin(an)*rad*0.82-0.5,1.5,1.5);}
+  const h=simMin/60,m=simMin%60;
+  const ha=(h%12)*Math.PI/6-Math.PI/2,ma=m*Math.PI/30-Math.PI/2;
+  X.strokeStyle='#222';X.lineCap='round';
+  X.lineWidth=Math.max(1.5,T*0.04);X.beginPath();X.moveTo(cx,cy);X.lineTo(cx+Math.cos(ha)*rad*0.5,cy+Math.sin(ha)*rad*0.5);X.stroke();
+  X.lineWidth=Math.max(1,T*0.025);X.beginPath();X.moveTo(cx,cy);X.lineTo(cx+Math.cos(ma)*rad*0.75,cy+Math.sin(ma)*rad*0.75);X.stroke();
+  X.lineCap='butt';
+}
+
+/* ───────── Characters ───────── */
+const SKIN='#f2c394',SKIN_D='#d9a070',OUTLINE='#17110a';
+function drawChar(a,tt){
+  const u=T/16;
+  const px=OX+a.x*T,py=OY+a.y*T;
+  const sit=a.state==='sit';
+  const walking=a.state==='walk'&&a.path.length>0;
+  const working=sit&&!!a.job;
+  const sc=a.shirt,hc=a.hair;
+  const parts=[];
+  const add=(x,y,w,h,col)=>parts.push([x,y,w,h,col]);
+  let hy,labelY;
+
+  at(px,py,u);
+  if(sit){
+    hy=0.5;
+    X.fillStyle='rgba(0,0,0,0.25)';X.beginPath();X.ellipse(px+8*u,py+15.4*u,6.5*u,1.6*u,0,0,Math.PI*2);X.fill();
+    add(2.5,5.5,11,9.5,'#3a3a46');add(3.5,6.5,9,6,'#4c4c5a');
+    add(7,14.5,2,1.5,'#222');add(4,15,3,1,'#222');add(9,15,3,1,'#222');
+    const tb=working?Math.sin(tt*16+a.ph)*0.5:0;
+    add(4,8.5,8,6,sc);add(10.4,8.5,1.6,6,shade(sc,-0.16));
+    if(a.tie)add(7.3,8.8,1.4,4.2,a.tie);
+    add(2,9,2.2,4.2,sc);add(11.8,9,2.2,4.2,sc);
+    add(2.1,12.7+tb,2,1.8,SKIN);add(11.9,12.7-tb,2,1.8,SKIN);
+    labelY=16.4;
+  }else{
+    const bob=walking?Math.abs(Math.sin(a.wp))*0.7:Math.sin(tt*2+a.ph)*0.12;
+    const sw=walking?Math.sin(a.wp)*1.5:0;
+    const yo=-4-bob;
+    hy=yo+0.5;
+    X.fillStyle='rgba(0,0,0,0.28)';X.beginPath();X.ellipse(px+8*u,py+16.2*u,5.6*u,1.5*u,0,0,Math.PI*2);X.fill();
+    const pants='#3a3a48';
+    add(4,yo+15.5,3.2,4+Math.max(0,sw)*0.4,pants);add(8.8,yo+15.5,3.2,4+Math.max(0,-sw)*0.4,pants);
+    add(3.6,yo+19.2+Math.max(0,sw)*0.4-0.3,4,1.8,'#241a14');add(8.4,yo+19.2+Math.max(0,-sw)*0.4-0.3,4,1.8,'#241a14');
+    add(3.5,yo+8.5,9,7.4,sc);add(10.4,yo+8.5,2.1,7.4,shade(sc,-0.16));
+    if(a.tie)add(7.3,yo+8.8,1.4,4.6,a.tie);
+    add(1.4,yo+9+sw*0.5,2.3,5.2,sc);add(12.3,yo+9-sw*0.5,2.3,5.2,sc);
+    add(1.5,yo+13.8+sw*0.5,2.1,1.8,SKIN);add(12.4,yo+13.8-sw*0.5,2.1,1.8,SKIN);
+    labelY=17.2;
+  }
+  // head
+  add(4,hy,8,8,SKIN);add(4,hy+7,8,1,SKIN_D);
+  switch(a.hs){
+    case 0:add(3.5,hy-1.5,9,3.5,hc);add(3.5,hy,1.3,3.2,hc);add(11.2,hy,1.3,3.2,hc);break;
+    case 1:add(3.5,hy-1.5,9,3.5,hc);add(3.5,hy,1.3,3.2,hc);add(11.2,hy,1.3,3.2,hc);add(4,hy+1.5,3.5,1.5,hc);break;
+    case 2:add(3.6,hy+0.2,1.2,3.4,hc);add(11.2,hy+0.2,1.2,3.4,hc);add(5.2,hy-0.8,5.6,1.4,hc);break;
+    default:add(3.5,hy-1.5,9,3.5,hc);add(3,hy,2,8.5,hc);add(11,hy,2,8.5,hc);
+  }
+  if(a.boss){
+    const cy=hy-1.5;
+    add(4.5,cy-2,7,2.2,'#f0c020');add(4.5,cy-4,1.8,2.2,'#f0c020');add(7.1,cy-5,1.8,3.2,'#f0c020');add(9.7,cy-4,1.8,2.2,'#f0c020');
+  }
+  // outline pass then fill pass
+  X.fillStyle=OUTLINE;
+  const o=Math.max(0.45,0.7/(u>3?1:1));
+  for(const p of parts){
+    const x0=snap(px+(p[0]-o)*u),y0=snap(py+(p[1]-o)*u),x1=snap(px+(p[0]+p[2]+o)*u),y1=snap(py+(p[1]+p[3]+o)*u);
+    X.fillRect(x0,y0,x1-x0,y1-y0);
+  }
+  for(const p of parts)b(p[0],p[1],p[2],p[3],p[4]);
+  // face
+  const blink=((tt*0.8+a.ph)%4)<0.12;
+  const look=walking||a.state==='stand'?a.dir*0.5:0;
+  const ey=hy+3.4;
+  if(!blink){
+    b(5.6,ey,2,2.2,'#fff');b(9,ey,2,2.2,'#fff');
+    b(6.2+look,ey+0.4,1.2,1.6,'#1a1008');b(9.6+look,ey+0.4,1.2,1.6,'#1a1008');
+  }else{b(5.6,ey+1,2,0.7,'#3a2a1a');b(9,ey+1,2,0.7,'#3a2a1a');}
+  if(a.glasses){
+    X.fillStyle='#111';
+    b(5,ey-0.6,3.2,0.6,'#111');b(5,ey+2.2,3.2,0.6,'#111');b(5,ey-0.6,0.6,3.4,'#111');b(7.6,ey-0.6,0.6,3.4,'#111');
+    b(8.8,ey-0.6,3.2,0.6,'#111');b(8.8,ey+2.2,3.2,0.6,'#111');b(8.8,ey-0.6,0.6,3.4,'#111');b(11.4,ey-0.6,0.6,3.4,'#111');
+    b(8.2,ey+0.2,0.6,0.6,'#111');
+  }
+  b(6.8,hy+6.2,2.4,0.9,'#a0503c');
+  if(a.state==='stand'&&a.walkTo==='coffee')b(13.4,hy+9.6,2.2,2.4,'#f4f4f4');
+
+  // name label
+  const fs=Math.max(8,Math.round(T*0.27));
+  X.font=`bold ${fs}px 'Courier New',monospace`;
+  const nm=a.boss?'* '+a.name:a.name;
+  const tw=X.measureText(nm).width;
+  const lx=px+8*u-tw/2-5,ly=py+labelY*u,lh=fs+5;
+  X.fillStyle=a.boss?'rgba(60,40,10,0.94)':'rgba(15,12,8,0.9)';X.fillRect(lx,ly,tw+10,lh);
+  X.strokeStyle=a.boss?'#8a6a20':CATS[a.cat];X.lineWidth=1;X.strokeRect(lx+0.5,ly+0.5,tw+9,lh-1);
+  X.fillStyle=a.boss?'#f0c040':'#ecd0b0';
+  X.textAlign='center';X.textBaseline='middle';X.fillText(nm,px+8*u,ly+lh/2+0.5);X.textAlign='left';
+  // progress strip under the label
+  if(working&&!a.boss){
+    const bwid=Math.max(tw+10,T*0.7),bx=px+8*u-bwid/2,by=ly+lh+2;
+    X.fillStyle='rgba(15,12,8,0.9)';X.fillRect(bx,by,bwid,4);
+    X.fillStyle=CATS[a.cat];
+    if(a.job.p==null){const k=(tt*0.8)%1;X.fillRect(bx+(bwid*0.7)*k,by,bwid*0.3,4);}
+    else X.fillRect(bx+0.5,by+0.5,(bwid-1)*clamp(a.job.p/100,0,1),3);
+  }
+  // speech bubble
+  if(a.bubbleT>0&&a.bubble){
+    const top=py+(hy-1.5-(a.boss?5.5:0))*u;
+    drawBubble(px+8*u,top-4,a.bubble);
+  }
+}
+
+function drawBubble(x,y,text){
+  const isTask=text.startsWith('<');
+  const fs=Math.max(8,Math.round(T*0.27));
+  X.font=`${fs}px 'Courier New',monospace`;
+  let t=text;const maxW=T*8;
+  while(X.measureText(t).width>maxW&&t.length>4)t=t.slice(0,-2);
+  if(t!==text)t=t.trimEnd()+'...';
+  const tw=X.measureText(t).width;
+  const bw=tw+14,bh=fs+8;
+  let bx=x-bw/2;bx=clamp(bx,OX+2,OX+GC*T-bw-2);
+  const by=y-bh-5;
+  const fill=isTask?'rgba(240,168,56,0.97)':'rgba(16,12,8,0.93)';
+  X.fillStyle=fill;X.beginPath();X.roundRect(bx,by,bw,bh,5);X.fill();
+  X.strokeStyle=isTask?'#a86a18':'#4a3c28';X.lineWidth=1.5;X.beginPath();X.roundRect(bx,by,bw,bh,5);X.stroke();
+  X.fillStyle=fill;X.beginPath();X.moveTo(x-4,by+bh-0.5);X.lineTo(x+4,by+bh-0.5);X.lineTo(x,by+bh+5);X.fill();
+  X.fillStyle=isTask?'#1a1006':'#e0c8a0';
+  X.textAlign='center';X.textBaseline='middle';
+  X.fillText(t,bx+bw/2,by+bh/2+0.5);X.textAlign='left';
+}
+
+/* ───────── Main loop ───────── */
+let last=0,panelT=0,statusT=0;
+function frame(ts){
+  const tt=ts/1000;
+  const dt=Math.min(last?(ts-last)/1000:0.016,0.05);last=ts;
+
+  X=MX;
+  X.setTransform(DPR,0,0,DPR,0,0);
+  X.imageSmoothingEnabled=false;
+  X.fillStyle='#100d0b';X.fillRect(0,0,W,H);
+  drawContainer();
+  X.drawImage(LC,0,0,LC.width,LC.height,OX,OY,GC*T,GR*T);
+  drawClock();
+  drawDyn(tt);
+
+  for(const a of agents)update(a,dt);
+  const order=[...agents].sort((p,q)=>p.y-q.y);
+  for(const a of order)drawChar(a,tt);
+
+  clockTick(dt);
+  statusT+=dt;
+  if(statusHold>0)statusHold-=dt;
+  else if(statusT>4){statusT=0;rotateStatus();}
+  panelT+=dt;
+  if(panelT>0.5){panelT=0;renderPanel();}
+  const wk=agents.filter(a=>a.job&&a.state==='sit').length;
+  document.getElementById('agentCount').textContent=`${wk} of ${agents.length} at work`;
+  requestAnimationFrame(frame);
+}
+
+window.addEventListener('resize',()=>{resize();});
+resize();
+renderPanel();
+if(FEED_ON)pollFeed();
+requestAnimationFrame(frame);
 </script>
 </body>
 </html>
