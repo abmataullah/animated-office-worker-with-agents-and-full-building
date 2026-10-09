@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ABM Office</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#151210;overflow:hidden;font-family:'Courier New',monospace;user-select:none;display:flex;flex-direction:column;height:100vh}
+#wrap{flex:1;position:relative;overflow:hidden}
+canvas{display:block}
+#ui{height:36px;background:#1a1410;display:flex;align-items:center;padding:0 14px;gap:12px;
+  border-top:2px solid #3a3020;flex-shrink:0}
+.dot{width:9px;height:9px;border-radius:50%;background:#40c040;box-shadow:0 0 6px #40c040;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+#clock{color:#f0a030;font-size:15px;font-weight:bold;letter-spacing:2px}
+#clockLabel{color:#806040;font-size:10px;text-transform:uppercase;letter-spacing:2px}
+#status{flex:1;color:#a08060;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#agentCount{background:rgba(240,160,48,0.15);color:#f0a030;padding:2px 12px;border-radius:12px;font-size:11px;font-weight:bold}
+#panelBtn{position:absolute;top:10px;right:10px;z-index:11;background:rgba(18,14,10,0.92);
+  border:2px solid #3a3020;color:#f0a030;padding:5px 12px;border-radius:6px;cursor:pointer;
+  font:bold 11px 'Courier New',monospace;letter-spacing:1px;transition:right .3s ease}
+#panelBtn.open{right:240px}
+#panel{position:absolute;top:10px;right:10px;width:220px;background:rgba(18,14,10,0.94);
+  border:2px solid #3a3020;border-radius:8px;padding:10px 10px 6px;z-index:10;
+  max-height:calc(100% - 20px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:#3a3020 transparent;
+  transition:transform .3s ease,opacity .3s ease}
+#panel.hidden{transform:translateX(240px);opacity:0;pointer-events:none}
+#panel h3{color:#f0a030;font-size:11px;margin-bottom:6px;text-transform:uppercase;letter-spacing:2px;
+  border-bottom:1px solid #2a2018;padding-bottom:5px;display:flex;justify-content:space-between;align-items:center}
+#panel h3 span{color:#806040;font-size:9px;font-weight:normal}
+.ti{padding:5px 0;border-bottom:1px solid #1e1a14;display:flex;align-items:flex-start;gap:7px}
+.ti:last-child{border-bottom:none}
+.ts{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.ts.done{background:#40c040}.ts.wk{background:#f0a030;animation:pulse 1.5s ease-in-out infinite}.ts.qu{background:#504030}
+.tn{color:#c0a080;font-size:10px;line-height:1.3}.ta{color:#605040;font-size:9px}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c"></canvas>
+<button id="panelBtn" class="open">CLOSE</button>
+<div id="panel"></div>
+</div>
+<div id="ui">
+  <div class="dot"></div>
+  <span id="clock">9:00 AM</span>
+  <span id="clockLabel">CLOCK IN</span>
+  <span id="status">Opening the office...</span>
+  <span id="agentCount">0 live</span>
+</div>
+<script>
+const C=document.getElementById('c'),X=C.getContext('2d');
+let W,H,T=1;
+
+/* ── Panel toggle ── */
+let panelVisible=true;
+document.getElementById('panelBtn').onclick=function(){
+  panelVisible=!panelVisible;
+  document.getElementById('panel').classList.toggle('hidden',!panelVisible);
+  this.classList.toggle('open',panelVisible);
+  this.textContent=panelVisible?'CLOSE':'AGENTS';
+};
+
+/* ── Grid 24x18 ── */
+const GC=24,GR=18;
+// 0=floor 1=wall 2=desk 4=plant 5=bookshelf 6=whiteboard 7=watercooler 8=rug 9=printer 10=couch
+const G=[
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,2,0,0,0,4,0,0,0,1,1,0,2,0,0,2,0,0,2,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,5,0,0,10,10,0,0,0,0,0,0,0,2,0,0,2,0,0,2,0,0,1],
+  [1,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,0,0,1,1,1,1,1,0,0,0,0,2,0,0,2,0,0,2,0,0,1],
+  [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,6,6,6,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,2,0,0,2,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,1],
+  [1,0,0,0,0,0,0,4,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,0,0,1,1,1,1,1,0,0,0,8,8,8,8,8,8,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,8,8,8,8,8,8,0,0,7,0,1],
+  [1,0,9,0,0,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,5,5,0,0,0,0,0,0,0,0,10,10,0,0,0,0,4,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+];
+
+function isFloor(r,c){
+  if(r<0||r>=GR||c<0||c>=GC)return false;
+  const v=G[r][c]; return v===0||v===8;
+}
+function isWalkable(r,c){return isFloor(r,c);}
+
+const DESKS=[];
+for(let r=0;r<GR;r++)for(let c=0;c<GC;c++){
+  if(G[r][c]===2&&r+1<GR&&isFloor(r+1,c)) DESKS.push({r,c,chairR:r+1,chairC:c});
+}
+const BOARD={r:9,c:4},COOLER={r:14,c:21};
+const BREAK_SPOTS=[{r:13,c:14},{r:13,c:16},{r:13,c:18},{r:14,c:14},{r:14,c:16},{r:14,c:18}];
+const CONF_SPOTS=[{r:9,c:3},{r:9,c:5},{r:10,c:3},{r:10,c:5},{r:11,c:3},{r:11,c:5}];
+
+/* ── Agents — ABM is the boss ── */
+const NAMES=['ABM','Dwight','Jim','Pam','Angela','Oscar','Kevin','Stanley',
+             'Ryan','Kelly','Toby','Phyllis','Creed','Meredith','Andy'];
+const SHIRTS=['#c09040','#8a6a30','#5a9a5a','#c06080','#404040','#7070a0','#c09040',
+              '#607050','#a05050','#c070a0','#6a6a6a','#80a070','#506070','#a07060','#5080a0'];
+const HAIRS=['#1a1a1a','#6a4020','#4a3520','#c08a40','#1a1a1a','#2a2020','#5a3a10',
+             '#1a1a1a','#3a2010','#2a1a0a','#6a5040','#b08050','#808080','#7a4020','#5a3a20'];
+
+/* ── Real PC background tasks ── */
+const TASKS=[
+  'running Facebook Ads','rendering video in Premiere','writing blog draft',
+  'processing images in Photoshop','syncing cloud backup','scheduling social posts',
+  'compressing video files','converting PDF documents','uploading to YouTube',
+  'editing podcast audio','designing social graphics','generating thumbnails',
+  'exporting After Effects comp','formatting Excel reports','recording screen capture',
+  'building presentation slides','analyzing Facebook pixel','optimizing ad targeting',
+  'batch resizing images','transcribing meeting notes','syncing Dropbox files',
+  'running email automation','scraping market data','updating WordPress site',
+  'reviewing analytics dashboard',
+];
+
+function rand(a){return a[Math.floor(Math.random()*a.length)]}
+function ri(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+
+const agents=[];
+for(let i=0;i<Math.min(NAMES.length,DESKS.length);i++){
+  const d=DESKS[i];
+  agents.push({
+    name:NAMES[i],shirt:SHIRTS[i],hair:HAIRS[i],
+    x:d.chairC,y:d.chairR,desk:d,state:'sit',
+    task:rand(TASKS),bubble:'',bubbleT:0,
+    stateT:ri(180,500),path:[],speed:0.04+Math.random()*0.015,
+    walkTo:null,frame:0,isBoss:i===0,
+  });
+}
+
+/* ── A* Pathfinding ── */
+function pathFind(sr,sc,er,ec){
+  sr=Math.round(sr);sc=Math.round(sc);er=Math.round(er);ec=Math.round(ec);
+  if(!isFloor(er,ec)){
+    for(const[dr,dc] of [[0,1],[0,-1],[1,0],[-1,0],[1,1],[-1,1],[1,-1],[-1,-1]]){
+      if(isFloor(er+dr,ec+dc)){er+=dr;ec+=dc;break;}
+    }
+  }
+  if(!isFloor(er,ec))return[];
+  const K=(r,c)=>r*GC+c;
+  const open=[{r:sr,c:sc,g:0,h:Math.abs(er-sr)+Math.abs(ec-sc),p:null}];
+  const vis=new Set(),best=new Map();
+  best.set(K(sr,sc),0);
+  let it=0;
+  while(open.length&&it++<800){
+    open.sort((a,b)=>(a.g+a.h)-(b.g+b.h));
+    const u=open.shift();
+    if(u.r===er&&u.c===ec){const p=[];let n=u;while(n){p.unshift({r:n.r,c:n.c});n=n.p;}return p;}
+    const k=K(u.r,u.c);
+    if(vis.has(k))continue;vis.add(k);
+    for(const[dr,dc] of [[0,1],[0,-1],[1,0],[-1,0]]){
+      const nr=u.r+dr,nc=u.c+dc;
+      if(!isFloor(nr,nc))continue;
+      const ng=u.g+1,nk=K(nr,nc);
+      if(!best.has(nk)||ng<best.get(nk)){
+        best.set(nk,ng);
+        open.push({r:nr,c:nc,g:ng,h:Math.abs(er-nr)+Math.abs(ec-nc),p:u});
+      }
+    }
+  }
+  return[];
+}
+
+/* ── Task Board ── */
+const board=[];
+for(let i=0;i<10;i++){
+  board.push({id:'task-'+(i+1),name:TASKS[i%TASKS.length],
+    st:i<3?'done':i<7?'wk':'qu',who:agents[i%agents.length].name});
+}
+
+function renderPanel(){
+  const el=document.getElementById('panel');
+  let h=`<h3>AGENTS <span>${agents.length} workers</span></h3>`;
+  for(const a of agents){
+    const col=a.state==='sit'?'#f0a030':'#60a060';
+    h+=`<div class="ti"><div class="ts" style="background:${col}"></div>
+      <div><div class="tn" style="color:#e0c0a0">${a.isBoss?'<b style="color:#f0a030">'+a.name+' (Boss)</b>':a.name}</div>
+      <div class="ta">${a.state==='sit'?a.task:a.bubble||'idle'}</div></div></div>`;
+  }
+  h+=`<h3 style="margin-top:8px">TASKS <span>${board.filter(t=>t.st==='wk').length} active</span></h3>`;
+  for(const t of board.slice(-8)){
+    h+=`<div class="ti"><div class="ts ${t.st}"></div>
+      <div><div class="tn">${t.name}</div><div class="ta">${t.who} · ${t.st==='done'?'done':t.st==='wk'?'working':'queued'}</div></div></div>`;
+  }
+  el.innerHTML=h;
+}
+renderPanel();
+
+/* ── Resize — fill viewport ── */
+function resize(){
+  const wrap=document.getElementById('wrap');
+  W=C.width=wrap.clientWidth;
+  H=C.height=wrap.clientHeight;
+  T=Math.max(20,Math.floor(Math.min((W-40)/GC,(H-40)/GR)));
+}
+resize();
+window.addEventListener('resize',resize);
+
+/* ── Drawing helpers ── */
+const SKIN='#f0c090',SKIN_S='#d0a070';
+
+/* ── WALL COLOR PALETTE ── */
+const WALL_DARK='#262220';
+const WALL_MID='#302c28';
+const WALL_EDGE='#4a443a';
+const WALL_INNER='#3e3830';
+const WALL_ACCENT='#1e1a18';
+
+function drawTile(r,c,ox,oy){
+  const px=ox+c*T,py=oy+r*T,v=G[r][c];
+  if(v===1){
+    // Main wall body
+    X.fillStyle=WALL_DARK;
+    X.fillRect(px,py,T+1,T+1);
+    // Subtle texture variation
+    X.fillStyle=(r+c)%2===0?WALL_MID:'#2a2622';
+    X.fillRect(px+1,py+1,T-1,T-1);
+
+    // Inner boundary — lighter edges facing floor
+    const bw=Math.max(3,Math.round(T*0.14));
+    const fB=r+1<GR&&isFloor(r+1,c);
+    const fT=r-1>=0&&isFloor(r-1,c);
+    const fR=c+1<GC&&isFloor(r,c+1);
+    const fL=c-1>=0&&isFloor(r,c-1);
+
+    if(fB){
+      X.fillStyle=WALL_EDGE;X.fillRect(px,py+T-bw,T+1,bw);
+      X.fillStyle=WALL_INNER;X.fillRect(px,py+T-1,T+1,1);
+    }
+    if(fT){
+      X.fillStyle=WALL_EDGE;X.fillRect(px,py,T+1,bw);
+      X.fillStyle=WALL_INNER;X.fillRect(px,py+bw,T+1,1);
+    }
+    if(fR){
+      X.fillStyle=WALL_EDGE;X.fillRect(px+T-bw,py,bw+1,T+1);
+      X.fillStyle=WALL_INNER;X.fillRect(px+T-1,py,1,T+1);
+    }
+    if(fL){
+      X.fillStyle=WALL_EDGE;X.fillRect(px,py,bw,T+1);
+      X.fillStyle=WALL_INNER;X.fillRect(px+bw,py,1,T+1);
+    }
+    // Corner insets
+    if(fB&&fR){X.fillStyle=WALL_EDGE;X.fillRect(px+T-bw,py+T-bw,bw+1,bw+1);}
+    if(fB&&fL){X.fillStyle=WALL_EDGE;X.fillRect(px,py+T-bw,bw,bw+1);}
+    if(fT&&fR){X.fillStyle=WALL_EDGE;X.fillRect(px+T-bw,py,bw+1,bw);}
+    if(fT&&fL){X.fillStyle=WALL_EDGE;X.fillRect(px,py,bw,bw);}
+  } else if(v===8){
+    X.fillStyle=(r+c)%2?'#7a3028':'#8a3830';
+    X.fillRect(px,py,T+1,T+1);
+    X.fillStyle='#6a2820';
+    X.fillRect(px,py,T+1,1);X.fillRect(px,py,1,T+1);
+  } else {
+    // Floor tile — green tinted
+    X.fillStyle=(r+c)%2?'#5e6e4e':'#687858';
+    X.fillRect(px,py,T+1,T+1);
+    X.strokeStyle='#4e5e3e';X.lineWidth=0.5;
+    X.strokeRect(px+0.5,py+0.5,T,T);
+  }
+}
+
+/* Floor shadows — ambient occlusion near walls */
+function drawFloorShadows(ox,oy){
+  const sw=Math.max(3,Math.round(T*0.12));
+  for(let r=0;r<GR;r++)for(let c=0;c<GC;c++){
+    if(!isFloor(r,c))continue;
+    const px=ox+c*T,py=oy+r*T;
+    // Shadow from wall above
+    if(r>0&&G[r-1][c]===1){
+      const g=X.createLinearGradient(px,py,px,py+sw);
+      g.addColorStop(0,'rgba(0,0,0,0.22)');g.addColorStop(1,'rgba(0,0,0,0)');
+      X.fillStyle=g;X.fillRect(px,py,T,sw);
+    }
+    // Shadow from wall left
+    if(c>0&&G[r][c-1]===1){
+      const g=X.createLinearGradient(px,py,px+sw,py);
+      g.addColorStop(0,'rgba(0,0,0,0.18)');g.addColorStop(1,'rgba(0,0,0,0)');
+      X.fillStyle=g;X.fillRect(px,py,sw,T);
+    }
+    // Subtle highlight from wall below (reflected light)
+    if(r+1<GR&&G[r+1][c]===1){
+      X.fillStyle='rgba(255,255,240,0.03)';
+      X.fillRect(px,py+T-sw,T,sw);
+    }
+    if(c+1<GC&&G[r][c+1]===1){
+      X.fillStyle='rgba(255,255,240,0.02)';
+      X.fillRect(px+T-sw,py,sw,T);
+    }
+  }
+}
+
+function drawFurniture(r,c,ox,oy,frame){
+  const px=ox+c*T,py=oy+r*T,v=G[r][c];
+  const s=T/32;
+
+  if(v===2){
+    X.fillStyle='#9a7a3a';X.fillRect(px+2*s,py+4*s,28*s,22*s);
+    X.fillStyle='#8a6a2a';X.fillRect(px+2*s,py+22*s,28*s,4*s);
+    X.fillStyle='#6a4a1a';X.fillRect(px+3*s,py+26*s,3*s,6*s);X.fillRect(px+26*s,py+26*s,3*s,6*s);
+    X.fillStyle='#222';X.fillRect(px+8*s,py+1*s,16*s,13*s);
+    X.fillStyle='#1a2a1a';X.fillRect(px+9*s,py+2*s,14*s,10*s);
+    X.fillStyle='#30e060';
+    for(let i=0;i<4;i++){
+      const lw=8+Math.abs(Math.sin(frame*0.02+i*2+c))*5;
+      X.fillRect(px+10*s,py+(3+i*2)*s,lw*s,1*s);
+    }
+    X.fillStyle='#333';X.fillRect(px+14*s,py+14*s,4*s,2*s);X.fillRect(px+12*s,py+15*s,8*s,2*s);
+    X.fillStyle='#444';X.fillRect(px+10*s,py+19*s,12*s,4*s);
+    X.fillStyle='#555';X.fillRect(px+11*s,py+20*s,10*s,2*s);
+    if((r+c)%3===0){
+      X.fillStyle='#e0d0c0';X.fillRect(px+23*s,py+16*s,5*s,6*s);
+      X.fillStyle='#6a4a2a';X.fillRect(px+24*s,py+17*s,3*s,4*s);
+    }
+  }
+  if(v===4){
+    const sw=Math.sin(frame*0.015+c)*1.5*s;
+    X.fillStyle='#b04030';X.fillRect(px+10*s,py+20*s,12*s,10*s);
+    X.fillStyle='#c05040';X.fillRect(px+8*s,py+18*s,16*s,4*s);
+    X.fillStyle='#4a3020';X.fillRect(px+10*s,py+18*s,12*s,3*s);
+    X.fillStyle='#3a8a3a';X.beginPath();X.ellipse(px+14*s+sw,py+10*s,5*s,9*s,-0.3,0,Math.PI*2);X.fill();
+    X.fillStyle='#4aa04a';X.beginPath();X.ellipse(px+20*s-sw,py+8*s,4*s,10*s,0.3,0,Math.PI*2);X.fill();
+    X.fillStyle='#3a9a3a';X.beginPath();X.ellipse(px+16*s,py+6*s,4*s,11*s,0,0,Math.PI*2);X.fill();
+  }
+  if(v===5){
+    X.fillStyle='#6a4a2a';X.fillRect(px+2*s,py+2*s,28*s,28*s);
+    X.fillStyle='#5a3a1a';X.fillRect(px+4*s,py+10*s,24*s,2*s);X.fillRect(px+4*s,py+20*s,24*s,2*s);
+    const bc=['#c04040','#4080c0','#40a060','#c0a040','#a060c0','#e07030','#50a0a0','#c06080'];
+    for(let sh=0;sh<3;sh++){
+      let bx=px+5*s;const by=py+(sh===0?3:sh===1?12:22)*s;
+      for(let b=0;b<4;b++){
+        X.fillStyle=bc[(sh*4+b+c)%bc.length];
+        const bw=ri(4,6)*s;X.fillRect(bx,by,bw,7*s);bx+=bw+1*s;
+      }
+    }
+  }
+  if(v===6){
+    X.fillStyle='#555';X.fillRect(px+1*s,py+4*s,30*s,20*s);
+    X.fillStyle='#e8e0d0';X.fillRect(px+3*s,py+6*s,26*s,16*s);
+    X.fillStyle='#3060a0';X.fillRect(px+5*s,py+8*s,18*s,1.5*s);
+    X.fillStyle='#a03030';X.fillRect(px+5*s,py+12*s,14*s,1.5*s);
+    X.fillStyle='#30a030';X.fillRect(px+5*s,py+16*s,20*s,1.5*s);
+    X.fillStyle='#444';X.fillRect(px+6*s,py+23*s,20*s,3*s);
+    X.fillStyle='#c03030';X.fillRect(px+8*s,py+22*s,2*s,4*s);
+    X.fillStyle='#3060c0';X.fillRect(px+12*s,py+22*s,2*s,4*s);
+    X.fillStyle='#30a030';X.fillRect(px+16*s,py+22*s,2*s,4*s);
+  }
+  if(v===7){
+    X.fillStyle='#777';X.fillRect(px+10*s,py+16*s,12*s,14*s);
+    X.fillStyle='#90c8e0';X.fillRect(px+11*s,py+4*s,10*s,14*s);
+    X.fillStyle='rgba(140,200,220,0.4)';X.fillRect(px+12*s,py+8*s,8*s,8*s);
+    X.fillStyle='#aaa';X.fillRect(px+14*s,py+17*s,4*s,2*s);
+    X.fillStyle='#e0d8d0';X.fillRect(px+20*s,py+24*s,4*s,5*s);
+  }
+  if(v===9){
+    X.fillStyle='#e0d8d0';X.fillRect(px+4*s,py+10*s,24*s,16*s);
+    X.fillStyle='#ccc';X.fillRect(px+6*s,py+12*s,20*s,6*s);
+    X.fillStyle='#444';X.fillRect(px+8*s,py+14*s,4*s,2*s);
+    X.fillStyle='#f0ece0';X.fillRect(px+10*s,py+8*s,12*s,4*s);
+    X.fillStyle=frame%120<60?'#40c040':'#206020';X.fillRect(px+22*s,py+20*s,3*s,2*s);
+  }
+  if(v===10){
+    X.fillStyle='#6a5040';X.fillRect(px+2*s,py+8*s,28*s,18*s);
+    X.fillStyle='#7a6050';X.fillRect(px+4*s,py+10*s,24*s,12*s);
+    X.fillStyle='#8a7060';X.fillRect(px+5*s,py+11*s,10*s,10*s);X.fillRect(px+17*s,py+11*s,10*s,10*s);
+    X.fillStyle='#5a4030';X.fillRect(px+1*s,py+8*s,4*s,20*s);X.fillRect(px+27*s,py+8*s,4*s,20*s);
+  }
+}
+
+/* Wall decorations */
+function drawWallDecor(ox,oy){
+  // Windows on top wall
+  for(const wc of [2,4,14,16,19]){
+    if(G[0][wc]!==1)continue;
+    const px=ox+wc*T,py=oy;
+    X.fillStyle='#3a4a5a';X.fillRect(px+3,py+T*0.2,T-6,T*0.65);
+    X.fillStyle='#5a7a9a';X.fillRect(px+5,py+T*0.25,T-10,T*0.55);
+    X.strokeStyle='#3a4a5a';X.lineWidth=2;
+    X.beginPath();X.moveTo(px+T/2,py+T*0.25);X.lineTo(px+T/2,py+T*0.8);X.stroke();
+    X.beginPath();X.moveTo(px+5,py+T*0.52);X.lineTo(px+T-5,py+T*0.52);X.stroke();
+  }
+  // Wall paintings
+  for(const pr of [2,9]){
+    const px=ox,py=oy+pr*T;
+    X.fillStyle='#8a7050';X.fillRect(px+T*0.2,py+3,T*0.6,T*0.65);
+    X.fillStyle=pr===2?'#c06030':'#3060c0';
+    X.fillRect(px+T*0.25,py+5,T*0.5,T*0.55);
+  }
+  // Clock on divider wall
+  const cx=ox+12*T+T/2,cy=oy+T*0.5;
+  X.fillStyle='#ddd';X.beginPath();X.arc(cx,cy,T*0.3,0,Math.PI*2);X.fill();
+  X.strokeStyle='#333';X.lineWidth=2;X.beginPath();X.arc(cx,cy,T*0.3,0,Math.PI*2);X.stroke();
+  const now=new Date();
+  const ha=((now.getHours()%12)+now.getMinutes()/60)*Math.PI/6-Math.PI/2;
+  const ma=now.getMinutes()*Math.PI/30-Math.PI/2;
+  X.strokeStyle='#333';X.lineWidth=2;
+  X.beginPath();X.moveTo(cx,cy);X.lineTo(cx+Math.cos(ha)*T*0.15,cy+Math.sin(ha)*T*0.15);X.stroke();
+  X.lineWidth=1;
+  X.beginPath();X.moveTo(cx,cy);X.lineTo(cx+Math.cos(ma)*T*0.22,cy+Math.sin(ma)*T*0.22);X.stroke();
+  // Ceiling light pools
+  for(const lc of [5,11,16,21]){
+    const lx=ox+lc*T+T/2,ly=oy+T;
+    X.fillStyle='rgba(255,240,200,0.06)';
+    X.beginPath();X.ellipse(lx,ly+T,T*2,T*2.5,0,0,Math.PI*2);X.fill();
+    X.fillStyle='#bbb';X.fillRect(lx-T*0.18,ly-3,T*0.36,3);
+  }
+}
+
+/* ── Office container — rounded border with depth ── */
+function drawContainer(ox,oy){
+  const pw=GC*T,ph=GR*T;
+  const pad=4,rad=12;
+  // Outer shadow
+  X.fillStyle='rgba(0,0,0,0.4)';
+  X.beginPath();X.roundRect(ox-pad-2,oy-pad-2,pw+pad*2+4,ph+pad*2+4,rad+2);X.fill();
+  // Outer border
+  X.fillStyle='#1a1816';
+  X.beginPath();X.roundRect(ox-pad,oy-pad,pw+pad*2,ph+pad*2,rad);X.fill();
+  // Inner highlight
+  X.strokeStyle='#3a3530';X.lineWidth=2;
+  X.beginPath();X.roundRect(ox-pad+1,oy-pad+1,pw+pad*2-2,ph+pad*2-2,rad-1);X.stroke();
+}
+
+/* ── Character Drawing ── */
+function drawChar(agent,ox,oy,frame){
+  const gx=agent.x,gy=agent.y;
+  const px=ox+gx*T,py=oy+gy*T;
+  const s=T/32;
+  const sitting=agent.state==='sit';
+  const walking=agent.state==='walk';
+  const sc=agent.shirt,hc=agent.hair;
+  X.imageSmoothingEnabled=false;
+
+  // Shadow
+  X.fillStyle='rgba(0,0,0,0.25)';
+  X.beginPath();X.ellipse(px+16*s,py+30*s,10*s,4*s,0,0,Math.PI*2);X.fill();
+
+  if(sitting){
+    // Chair
+    X.fillStyle='#454545';X.fillRect(px+4*s,py+6*s,24*s,16*s);
+    X.fillStyle='#3a3a3a';X.fillRect(px+6*s,py+20*s,20*s,4*s);
+    X.fillStyle='#555';X.fillRect(px+14*s,py+24*s,4*s,4*s);
+    X.fillStyle='#444';X.fillRect(px+8*s,py+27*s,16*s,3*s);
+    X.fillStyle='#333';X.fillRect(px+8*s,py+29*s,4*s,3*s);X.fillRect(px+20*s,py+29*s,4*s,3*s);
+    const tb=Math.sin(frame*0.08)*0.5*s;
+    X.fillStyle='#3a3530';X.fillRect(px+8*s,py+21*s,6*s,3*s);X.fillRect(px+18*s,py+21*s,6*s,3*s);
+    X.fillStyle=sc;X.fillRect(px+7*s,py+10*s,18*s,12*s);
+    X.fillStyle=sc;X.fillRect(px+3*s,py+12*s+tb,5*s,8*s);X.fillRect(px+24*s,py+12*s-tb,5*s,8*s);
+    X.fillStyle=SKIN;X.fillRect(px+3*s,py+19*s+tb,5*s,3*s);X.fillRect(px+24*s,py+19*s-tb,5*s,3*s);
+    X.fillStyle=SKIN;X.fillRect(px+8*s,py+2*s,16*s,10*s);
+    X.fillStyle=hc;X.fillRect(px+7*s,py+0*s,18*s,5*s);X.fillRect(px+7*s,py+2*s,3*s,4*s);X.fillRect(px+22*s,py+2*s,3*s,4*s);
+    X.fillStyle='#222';X.fillRect(px+11*s,py+5*s,3*s,3*s);X.fillRect(px+18*s,py+5*s,3*s,3*s);
+    X.fillStyle='#fff';X.fillRect(px+11*s,py+5*s,2*s,2*s);X.fillRect(px+18*s,py+5*s,2*s,2*s);
+    X.fillStyle='#a05040';X.fillRect(px+13*s,py+9*s,6*s,1.5*s);
+    // Boss crown
+    if(agent.isBoss){
+      X.fillStyle='#f0c020';
+      X.fillRect(px+9*s,py-4*s,14*s,4*s);
+      X.fillRect(px+9*s,py-6*s,3*s,3*s);
+      X.fillRect(px+14*s,py-7*s,4*s,4*s);
+      X.fillRect(px+20*s,py-6*s,3*s,3*s);
+    }
+  } else {
+    const legA=walking?Math.sin(frame*0.15)*4*s:0;
+    const armA=walking?Math.sin(frame*0.15)*3*s:0;
+    X.fillStyle='#3a3530';X.fillRect(px+8*s,py+20*s-legA,6*s,8*s);X.fillRect(px+18*s,py+20*s+legA,6*s,8*s);
+    X.fillStyle='#2a2020';X.fillRect(px+7*s,py+27*s-legA,7*s,4*s);X.fillRect(px+18*s,py+27*s+legA,7*s,4*s);
+    X.fillStyle=sc;X.fillRect(px+7*s,py+10*s,18*s,12*s);
+    X.fillStyle=sc;X.fillRect(px+2*s,py+10*s+armA,6*s,10*s);X.fillRect(px+24*s,py+10*s-armA,6*s,10*s);
+    X.fillStyle=SKIN;X.fillRect(px+2*s,py+19*s+armA,6*s,3*s);X.fillRect(px+24*s,py+19*s-armA,6*s,3*s);
+    X.fillStyle=SKIN;X.fillRect(px+8*s,py+0*s,16*s,12*s);
+    X.fillStyle=hc;X.fillRect(px+7*s,py-2*s,18*s,6*s);X.fillRect(px+7*s,py+0*s,3*s,5*s);X.fillRect(px+22*s,py+0*s,3*s,5*s);
+    X.fillStyle='#222';X.fillRect(px+11*s,py+4*s,3*s,3*s);X.fillRect(px+18*s,py+4*s,3*s,3*s);
+    X.fillStyle='#fff';X.fillRect(px+11*s,py+4*s,2*s,2*s);X.fillRect(px+18*s,py+4*s,2*s,2*s);
+    X.fillStyle='#a05040';X.fillRect(px+13*s,py+8*s,6*s,1.5*s);
+    // Boss crown
+    if(agent.isBoss){
+      X.fillStyle='#f0c020';
+      X.fillRect(px+9*s,py-6*s,14*s,4*s);
+      X.fillRect(px+9*s,py-8*s,3*s,3*s);
+      X.fillRect(px+14*s,py-9*s,4*s,4*s);
+      X.fillRect(px+20*s,py-8*s,3*s,3*s);
+    }
+  }
+
+  // Name label
+  const fs=Math.max(9,Math.round(T*0.32));
+  X.font=`bold ${fs}px 'Courier New',monospace`;
+  const nm=agent.isBoss?'★ '+agent.name:agent.name;
+  const tw=X.measureText(nm).width;
+  const lx=px+16*s-tw/2-5,ly=py+32*s+2;
+  X.fillStyle=agent.isBoss?'rgba(60,40,10,0.92)':'rgba(15,12,8,0.88)';
+  X.fillRect(lx,ly,tw+10,15);
+  X.strokeStyle=agent.isBoss?'#8a6a20':'#2a2018';X.lineWidth=1;X.strokeRect(lx,ly,tw+10,15);
+  X.fillStyle=agent.isBoss?'#f0c040':'#e0c0a0';
+  X.textAlign='center';X.textBaseline='middle';
+  X.fillText(nm,px+16*s,ly+7.5);
+  X.textAlign='left';
+
+  // Speech bubble
+  if(agent.bubbleT>0) drawBubble(px+16*s,py-6*s,agent.bubble,agent.bubble.startsWith('<'));
+}
+
+function drawBubble(x,y,text,isTask){
+  X.font=`${Math.max(8,Math.round(T*0.28))}px 'Courier New',monospace`;
+  const tw=X.measureText(text).width;
+  const bw=tw+14,bh=17,bx=x-bw/2,by=y-bh;
+  const clampX=Math.max(2,Math.min(bx,W-bw-2));
+  X.fillStyle=isTask?'rgba(240,160,48,0.94)':'rgba(15,12,8,0.9)';
+  X.beginPath();X.roundRect(clampX,by,bw,bh,4);X.fill();
+  X.strokeStyle=isTask?'#b07020':'#3a3020';X.lineWidth=1;
+  X.beginPath();X.roundRect(clampX,by,bw,bh,4);X.stroke();
+  X.fillStyle=isTask?'rgba(240,160,48,0.94)':'rgba(15,12,8,0.9)';
+  X.beginPath();X.moveTo(x-3,by+bh);X.lineTo(x+3,by+bh);X.lineTo(x,by+bh+5);X.fill();
+  X.fillStyle=isTask?'#1a1410':'#d0b890';
+  X.textAlign='center';X.textBaseline='middle';
+  X.fillText(text,clampX+bw/2,by+bh/2);
+  X.textAlign='left';
+}
+
+/* ── Agent AI ── */
+function updateAgent(a){
+  a.frame++;
+  a.stateT--;
+  if(a.bubbleT>0)a.bubbleT--;
+
+  if(a.state==='sit'&&a.stateT<=0){
+    const r=Math.random();
+    if(r<0.25){
+      a.state='walk';a.bubble='heading to board';a.bubbleT=120;
+      a.path=pathFind(a.y,a.x,BOARD.r,BOARD.c);a.walkTo='board';
+    } else if(r<0.38){
+      a.state='walk';a.bubble='getting coffee';a.bubbleT=100;
+      a.path=pathFind(a.y,a.x,COOLER.r,COOLER.c-1);a.walkTo='coffee';
+    } else if(r<0.48){
+      a.state='walk';const sp=rand(BREAK_SPOTS);
+      a.bubble='heading to break room';a.bubbleT=100;
+      a.path=pathFind(a.y,a.x,sp.r,sp.c);a.walkTo='break';
+    } else if(r<0.55){
+      a.state='walk';const sp=rand(CONF_SPOTS);
+      a.bubble='heading to meeting';a.bubbleT=100;
+      a.path=pathFind(a.y,a.x,sp.r,sp.c);a.walkTo='conf';
+    } else {
+      a.task=rand(TASKS);a.bubble='< '+a.task;a.bubbleT=200;a.stateT=ri(250,600);
+    }
+  }
+  if(a.state==='stand'&&a.stateT<=0){
+    a.state='walk';a.bubble='heading back to desk';a.bubbleT=100;
+    a.path=pathFind(Math.round(a.y),Math.round(a.x),a.desk.chairR,a.desk.chairC);a.walkTo='desk';
+  }
+  if(a.state==='walk'){
+    if(a.path.length>0){
+      const next=a.path[0];
+      const dx=next.c-a.x,dy=next.r-a.y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<a.speed*1.5){a.x=next.c;a.y=next.r;a.path.shift();}
+      else{a.x+=dx/dist*a.speed;a.y+=dy/dist*a.speed;}
+    }
+    if(a.path.length===0){
+      if(a.walkTo==='desk'){
+        a.state='sit';a.x=a.desk.chairC;a.y=a.desk.chairR;
+        a.task=rand(TASKS);a.bubble='< '+a.task;a.bubbleT=200;a.stateT=ri(250,600);
+      } else {
+        a.state='stand';
+        a.bubble=a.walkTo==='board'?'updating task board':
+                 a.walkTo==='coffee'?'drinking coffee':
+                 a.walkTo==='conf'?'< reviewing progress':'relaxing';
+        a.bubbleT=150;a.stateT=ri(100,250);
+      }
+    }
+  }
+}
+
+/* ── Clock ── */
+let simMin=540;
+function tickClock(){
+  simMin+=0.12;if(simMin>=1080)simMin=540;
+  const h=Math.floor(simMin/60),m=Math.floor(simMin%60);
+  const ap=h>=12?'PM':'AM',h12=h>12?h-12:h===0?12:h;
+  document.getElementById('clock').textContent=`${h12}:${String(m).padStart(2,'0')} ${ap}`;
+  const labels=['CLOCK IN','STANDUP','DEEP WORK','LUNCH','DEEP WORK','REVIEW','WRAP UP'];
+  document.getElementById('clockLabel').textContent=labels[Math.min(Math.floor((simMin-540)/80),6)];
+}
+
+/* ── Status messages — real PC work ── */
+const MSGS=[
+  'All workers active...','Facebook Ads campaign running...','Video render: 78% complete',
+  'Blog draft: 1,240 words written','Image batch: 23/50 processed','Cloud backup in progress...',
+  'Social posts scheduled for the week','Video compression: saving 2.1 GB',
+  'Email campaign sent to 3,400 contacts','YouTube upload: processing HD...',
+  'Podcast episode exported','Thumbnails generated: 12 variants',
+  'Screen recording: 4:32 elapsed','Presentation: 18 slides complete',
+  'Facebook ROAS: 4.2x this week','ABM assigned 3 new tasks',
+  'Dropbox sync: 94% complete','WordPress updated to latest version',
+];
+
+/* ── Main Loop ── */
+let fc=0,statusTick=0;
+function loop(){
+  fc++;
+  X.clearRect(0,0,W,H);
+  X.fillStyle='#151210';X.fillRect(0,0,W,H);
+
+  const ox=Math.round((W-GC*T)/2),oy=Math.round((H-GR*T)/2);
+
+  // Container with depth
+  drawContainer(ox,oy);
+
+  // Floor & walls
+  for(let r=0;r<GR;r++)for(let c=0;c<GC;c++)drawTile(r,c,ox,oy);
+
+  // Floor shadows (ambient occlusion)
+  drawFloorShadows(ox,oy);
+
+  drawWallDecor(ox,oy);
+
+  // Furniture
+  for(let r=0;r<GR;r++)for(let c=0;c<GC;c++){
+    if(G[r][c]>=2)drawFurniture(r,c,ox,oy,fc);
+  }
+
+  // Agents
+  for(const a of agents)updateAgent(a);
+  const sorted=[...agents].sort((a,b)=>a.y-b.y);
+  for(const a of sorted)drawChar(a,ox,oy,fc);
+
+  // UI updates
+  statusTick++;
+  if(statusTick%180===0)document.getElementById('status').textContent=rand(MSGS);
+  if(statusTick%50===0)tickClock();
+  const wk=agents.filter(a=>a.state==='sit').length;
+  document.getElementById('agentCount').textContent=`${agents.length} workers · ${wk} active`;
+
+  // Task board rotation
+  if(statusTick%350===0){
+    const ti=ri(0,board.length-1);
+    if(board[ti].st==='wk'&&Math.random()>0.4){
+      board[ti].st='done';
+      board.push({id:'task-'+(board.length+1),name:rand(TASKS),st:'wk',who:rand(agents).name});
+      if(board.length>12)board.shift();
+    } else if(board[ti].st==='qu'){
+      board[ti].st='wk';board[ti].who=rand(agents).name;
+    }
+    renderPanel();
+  }
+  if(statusTick%120===0)renderPanel();
+
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
