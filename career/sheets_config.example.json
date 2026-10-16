@@ -1,0 +1,10 @@
+{
+  "enabled": false,
+  "spreadsheet_id": "",
+  "spreadsheet_url": "",
+  "sheet_name": "Pipeline Tracker",
+  "queue_sheet_name": "Apply Queue",
+  "webhook_sync_url": "",
+  "webhook_token": "CHANGE_ME",
+  "local_csv_file": "pipeline_tracker.csv"
+}

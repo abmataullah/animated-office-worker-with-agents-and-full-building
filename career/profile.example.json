@@ -1,0 +1,106 @@
+{
+  "curated": true,
+  "name": "Your Name",
+  "title": "Your headline",
+  "email": "you@example.com",
+  "phone": "",
+  "location": "City, Country",
+  "work_location": "Remote",
+  "portfolio_url": "",
+  "linkedin_url": "",
+  "github_url": "",
+  "remote_preference": "100% Remote Only",
+  "languages": [
+    "English"
+  ],
+  "tracks": {
+    "automation": {
+      "headline": "...",
+      "summary": "...",
+      "keywords": [
+        "python",
+        "automation",
+        "automate",
+        "workflow",
+        "pipeline",
+        "scraping"
+      ]
+    },
+    "science": {
+      "headline": "...",
+      "summary": "...",
+      "keywords": [
+        "marine",
+        "ocean",
+        "coastal",
+        "environment",
+        "ecolog",
+        "climate"
+      ]
+    },
+    "media": {
+      "headline": "...",
+      "summary": "...",
+      "keywords": [
+        "content",
+        "writer",
+        "writing",
+        "copywrit",
+        "editor",
+        "editorial"
+      ]
+    }
+  },
+  "target_roles": [
+    "..."
+  ],
+  "technical_skills": [
+    "Python"
+  ],
+  "ats_keywords": [
+    "Python"
+  ],
+  "experience": [
+    {
+      "role": "...",
+      "org": "...",
+      "location": "...",
+      "dates": "2020 – Present",
+      "sort": 202000,
+      "tracks": [
+        "automation"
+      ],
+      "keywords": [
+        "python"
+      ],
+      "bullets": [
+        "..."
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Project: one-line description",
+      "tracks": [
+        "automation"
+      ],
+      "stack": "...",
+      "keywords": [
+        "python"
+      ],
+      "bullets": [
+        "..."
+      ]
+    }
+  ],
+  "research": [],
+  "education": [
+    {
+      "degree": "...",
+      "school": "...",
+      "dates": "...",
+      "result": ""
+    }
+  ],
+  "certifications": []
+}
